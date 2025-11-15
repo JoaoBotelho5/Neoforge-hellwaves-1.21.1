@@ -8,94 +8,90 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+public class ActivatorBlock extends Block implements EntityBlock {
 
-public class ActivatorBlock extends Block {
-
-    public static final int MAX_WAVES = 3;
-    private int nextWave = 1;
-    private boolean waveScheduled = false; // track automatic wave scheduling
-    private final List<Mob> activeMobs = new ArrayList<>();
     private static final int TICKS_BETWEEN_WAVES = 1200;
-    private int tickCountdown = 0;
 
     public ActivatorBlock(Properties properties) {
         super(properties);
     }
 
     @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new ActivatorBlockEntity(pos, state);
+    }
+
+    @Override
     public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean isMoving) {
-        if (!world.isClientSide && state.getBlock() != oldState.getBlock()) {
-            // Schedule the first tick immediately for explosion checks
+        if (!world.isClientSide) {
+            // Schedule first tick for explosion/mob check
             world.scheduleTick(pos, this, 1);
         }
     }
 
     @Override
     public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource rand) {
-        if (world.isClientSide()) return;
+        BlockEntity be = world.getBlockEntity(pos);
+        if (!(be instanceof ActivatorBlockEntity blockEntity)) return;
 
         // Remove dead mobs
-        Iterator<Mob> it = activeMobs.iterator();
-        while (it.hasNext()) {
-            Mob mob = it.next();
-            if (mob.isRemoved()) it.remove();
-        }
+        blockEntity.activeMobs.removeIf(Mob::isRemoved);
 
-        // Check if any mob is within 2 blocks and explode
-        for (Mob mob : activeMobs) {
+        // Explode if any mob is near
+        for (Mob mob : blockEntity.activeMobs) {
             if (mob.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 4) {
-                explode(world, pos);
-                return; // stop ticking after explosion
+                explode(world, pos, blockEntity);
+                return;
             }
         }
 
-        // If no active mobs, check for automatic wave activation
-        if (activeMobs.isEmpty() && nextWave <= MAX_WAVES) {
-            if (tickCountdown <= 0) { // tickCountdown is a new field
-                int wave = nextWave;
-                List<Mob> spawned = WaveManager.activateWave(world, pos, null, wave);
-                activeMobs.addAll(spawned);
+        // Automatic wave activation
+        if (blockEntity.activeMobs.isEmpty() && blockEntity.nextWave <= ActivatorBlockEntity.MAX_WAVES) {
+            if (blockEntity.tickCountdown <= 0) {
+                int wave = blockEntity.nextWave;
+                blockEntity.activeMobs.addAll(WaveManager.activateWave(world, pos, null, wave));
 
                 world.getServer().getPlayerList().getPlayers().forEach(p ->
                         p.sendSystemMessage(Component.literal("Wave " + wave + " has started!"))
                 );
 
-                nextWave++;
-                tickCountdown = TICKS_BETWEEN_WAVES; // reset countdown for next wave
+                blockEntity.nextWave++;
+                blockEntity.tickCountdown = TICKS_BETWEEN_WAVES;
             } else {
-                tickCountdown--; // count down each tick
+                blockEntity.tickCountdown--;
             }
         }
 
-        // Always schedule the next tick for explosion checking
+        // Always schedule next tick
         world.scheduleTick(pos, this, 1);
     }
 
-    private void explode(Level world, BlockPos centerPos) {
+    private void explode(ServerLevel world, BlockPos pos, ActivatorBlockEntity blockEntity) {
         world.explode(
                 null,
-                centerPos.getX() + 0.5,
-                centerPos.getY() + 0.5,
-                centerPos.getZ() + 0.5,
+                pos.getX() + 0.5,
+                pos.getY() + 0.5,
+                pos.getZ() + 0.5,
                 25.0f,
                 Level.ExplosionInteraction.BLOCK
         );
 
-        nextWave = 1;
-        activeMobs.clear();
-        waveScheduled = false;
+        blockEntity.nextWave = 1;
+        blockEntity.activeMobs.clear();
+        blockEntity.tickCountdown = 0;
     }
 
     public void activateWave(Level world, BlockPos pos, Player player) {
-        if (!world.isClientSide() && nextWave <= MAX_WAVES) {
-            int wave = nextWave;
-            List<Mob> spawned = WaveManager.activateWave(world, pos, player, wave);
-            activeMobs.addAll(spawned);
+        BlockEntity be = world.getBlockEntity(pos);
+        if (!(be instanceof ActivatorBlockEntity blockEntity)) return;
+
+        if (blockEntity.nextWave <= ActivatorBlockEntity.MAX_WAVES) {
+            int wave = blockEntity.nextWave;
+            blockEntity.activeMobs.addAll(WaveManager.activateWave(world, pos, player, wave));
 
             if (player != null) {
                 player.displayClientMessage(Component.literal("Wave " + wave + " has started!"), false);
@@ -105,18 +101,7 @@ public class ActivatorBlock extends Block {
                 );
             }
 
-            nextWave++;
-        }
-    }
-
-    @Override
-    public void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean isMoving) {
-        super.onRemove(state, world, pos, newState, isMoving);
-
-        if (!world.isClientSide() && state.getBlock() != newState.getBlock()) {
-            nextWave = 1;
-            activeMobs.clear();
-            waveScheduled = false;
+            blockEntity.nextWave++;
         }
     }
 }

@@ -18,6 +18,8 @@ public class HellwavesMod {
 
         HWDeferredRegister.ITEMS.register(modBus);
 
+        ModBlockEntities.BLOCK_ENTITIES.register(modBus);
+
         NeoForge.EVENT_BUS.register(new HWEvents());
 
         // new Wrapper(modBus);
