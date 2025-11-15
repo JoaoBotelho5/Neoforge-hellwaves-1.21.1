@@ -7,6 +7,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -17,7 +18,8 @@ public class Wave {
         this.enemies = enemies;
     }
 
-    public void spawn(Level world, BlockPos pos) {
+    public List<Mob> spawn(Level world, BlockPos pos) {
+        List<Mob> spawned = new ArrayList<>();
         int numberofMobs = enemies.size();
         double radius = 20.0;
 
@@ -35,8 +37,12 @@ public class Wave {
                 world.addFreshEntity(mob);
 
                 mob.goalSelector.addGoal(1, new WalkCenterGoal(mob, pos, 1.0));
+
+                spawned.add(mob); // add to the list
             }
         }
+
+        return spawned;
     }
 
 
@@ -75,5 +81,6 @@ public class Wave {
             );
         }
     }
+
 
 }

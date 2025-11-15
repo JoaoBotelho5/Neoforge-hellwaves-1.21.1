@@ -18,11 +18,11 @@ public class HWEvents {
 
         Block block = level.getBlockState(hit.getBlockPos()).getBlock();
 
-        if (block instanceof ActivatorBlock) {
+        if (block instanceof ActivatorBlock activatorBlock) {
             System.out.println("Right-click detected on ActivatorBlock!");
 
             if (!level.isClientSide()) {
-                WaveManager.activateWave(level, hit.getBlockPos(), player);
+                activatorBlock.activateWave(level, hit.getBlockPos(), player);
             }
 
             event.setCancellationResult(InteractionResult.SUCCESS);
