@@ -68,6 +68,11 @@ public class Wave {
 
         @Override
         public boolean canUse() {
+
+            if (!(mob.level().getBlockState(center).getBlock() instanceof ActivatorBlock)) {
+                return false;
+            }
+
             // Only run when mob has no target
             if (mob.getTarget() != null) return false;
 
