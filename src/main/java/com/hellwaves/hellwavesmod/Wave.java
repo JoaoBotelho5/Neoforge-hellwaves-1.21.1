@@ -3,9 +3,11 @@ package com.hellwaves.hellwavesmod;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 
+import java.util.EnumSet;
 import java.util.List;
 
 public class Wave {
@@ -31,7 +33,47 @@ public class Wave {
 
                 mob.moveTo(x, y, z, 0, 0);
                 world.addFreshEntity(mob);
+
+                mob.goalSelector.addGoal(1, new WalkCenterGoal(mob, pos, 1.0));
             }
         }
     }
+
+
+    private static class WalkCenterGoal extends Goal {
+        private final Mob mob;
+        private final BlockPos center;
+        private final double speed;
+
+        public WalkCenterGoal(Mob mob, BlockPos center, double speed) {
+            this.mob = mob;
+            this.center = center;
+            this.speed = speed;
+            this.setFlags(EnumSet.of(Flag.MOVE));
+        }
+
+        @Override
+        public boolean canUse() {
+            // Only run when mob has no target
+            if (mob.getTarget() != null) return false;
+
+            // Only run when far from center
+            return mob.distanceToSqr(
+                    center.getX() + 0.5,
+                    center.getY() + 0.5,
+                    center.getZ() + 0.5
+            ) > 4.0; // 2-block radius
+        }
+
+        @Override
+        public void tick() {
+            mob.getNavigation().moveTo(
+                    center.getX() + 0.5,
+                    center.getY(),
+                    center.getZ() + 0.5,
+                    speed
+            );
+        }
+    }
+
 }
