@@ -46,6 +46,13 @@ public class Wave {
 
                 mob.goalSelector.addGoal(1, new WalkCenterGoal(mob, pos, 1.0));
 
+                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.MAINHAND, 0f);
+                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.OFFHAND, 0f);
+                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.HEAD, 0f);
+                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.CHEST, 0f);
+                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.LEGS, 0f);
+                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.FEET, 0f);
+
                 spawned.add(mob); // add to the list
             }
         }

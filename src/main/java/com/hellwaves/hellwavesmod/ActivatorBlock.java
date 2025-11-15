@@ -66,6 +66,7 @@ public class ActivatorBlock extends Block implements EntityBlock {
             }
         }
 
+        blockEntity.tick(world);
         // Always schedule next tick
         world.scheduleTick(pos, this, 1);
     }
