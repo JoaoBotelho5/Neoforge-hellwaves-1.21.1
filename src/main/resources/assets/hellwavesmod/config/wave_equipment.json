@@ -24,5 +24,57 @@
         { "item": "minecraft:golden_boots", "weight": 30 }
       ]
     }
+  },
+  "wave2": {
+    "mainhand": [
+      { "item": "minecraft:iron_sword", "weight": 45 },
+      { "item": "minecraft:golden_sword", "weight": 25 },
+      { "item": "minecraft:iron_axe", "weight": 20 },
+      { "item": "minecraft:diamond_sword", "weight": 10 }
+    ],
+    "armor": {
+      "head": [
+        { "item": "minecraft:golden_helmet", "weight": 60 },
+        { "item": "minecraft:iron_helmet", "weight": 40 }
+      ],
+      "chest": [
+        { "item": "minecraft:golden_chestplate", "weight": 65 },
+        { "item": "minecraft:iron_chestplate", "weight": 35 }
+      ],
+      "legs": [
+        { "item": "minecraft:golden_leggings", "weight": 65 },
+        { "item": "minecraft:iron_leggings", "weight": 35 }
+      ],
+      "feet": [
+        { "item": "minecraft:golden_boots", "weight": 40 },
+        { "item": "minecraft:iron_boots", "weight": 60 }
+      ]
+    }
+  },
+  "wave3": {
+    "mainhand": [
+      { "item": "minecraft:iron_sword", "weight": 40 },
+      { "item": "minecraft:iron_axe", "weight": 35 },
+      { "item": "minecraft:diamond_sword", "weight": 15 },
+      { "item": "minecraft:diamond_axe", "weight": 10 }
+    ],
+    "armor": {
+      "head": [
+        { "item": "minecraft:iron_helmet", "weight": 60 },
+        { "item": "minecraft:diamond_helmet", "weight": 40 }
+      ],
+      "chest": [
+        { "item": "minecraft:iron_chestplate", "weight": 70 },
+        { "item": "minecraft:diamond_chestplate", "weight": 30 }
+      ],
+      "legs": [
+        { "item": "minecraft:iron_leggings", "weight": 80 },
+        { "item": "minecraft:diamond_leggings", "weight": 20 }
+      ],
+      "feet": [
+        { "item": "minecraft:iron_boots", "weight": 60 },
+        { "item": "minecraft:diamond_boots", "weight": 40 }
+      ]
+    }
   }
 }
