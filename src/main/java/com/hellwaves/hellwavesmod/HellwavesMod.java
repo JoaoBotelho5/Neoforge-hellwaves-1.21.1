@@ -12,7 +12,8 @@ public class HellwavesMod {
 
     public HellwavesMod(IEventBus modBus) {
         // IEventBus modBus = NeoForge.EVENT_BUS.getModBus(MOD_ID);
-
+        EquipmentConfig.load();
+        
         HWDeferredRegister.BLOCKS.register(modBus);
 
         HWDeferredRegister.ITEMS.register(modBus);

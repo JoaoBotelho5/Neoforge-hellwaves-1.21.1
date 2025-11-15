@@ -1,5 +1,6 @@
 package com.hellwaves.hellwavesmod;
 
+import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
@@ -14,12 +15,15 @@ import java.util.List;
 public class Wave {
     private final List<EntityType<? extends Mob>> enemies;
 
+
     public Wave(List<EntityType<? extends Mob>> enemies) {
         this.enemies = enemies;
     }
 
-    public List<Mob> spawn(Level world, BlockPos pos) {
+    public List<Mob> spawn(Level world, BlockPos pos, int waveNumber) {
         List<Mob> spawned = new ArrayList<>();
+        JsonObject waveConfig = WaveManager.equipmentConfig.getAsJsonObject("wave" + waveNumber);
+
         int numberofMobs = enemies.size();
         double radius = 20.0;
 
@@ -35,6 +39,10 @@ public class Wave {
 
                 mob.moveTo(x, y, z, 0, 0);
                 world.addFreshEntity(mob);
+
+                if (waveConfig != null) {
+                    EquipmentHelper.applyGear(mob, waveConfig);
+                }
 
                 mob.goalSelector.addGoal(1, new WalkCenterGoal(mob, pos, 1.0));
 
