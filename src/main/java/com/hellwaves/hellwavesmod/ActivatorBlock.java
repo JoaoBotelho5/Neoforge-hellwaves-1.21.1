@@ -9,8 +9,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 
 public class ActivatorBlock extends Block implements EntityBlock {
 
@@ -23,6 +26,18 @@ public class ActivatorBlock extends Block implements EntityBlock {
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new ActivatorBlockEntity(pos, state);
+    }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        return level.isClientSide ? null : createTickerHelper(type, ModBlockEntities.ACTIVATOR_BLOCK_ENTITY.get(), ActivatorBlock::tick);
+    }
+
+    private static void tick(Level level, BlockPos pos, BlockState state, ActivatorBlockEntity blockEntity) {
+        if (level instanceof ServerLevel serverLevel) {
+            blockEntity.tick(serverLevel);
+        }
     }
 
     @Override
@@ -39,7 +54,7 @@ public class ActivatorBlock extends Block implements EntityBlock {
         if (!(be instanceof ActivatorBlockEntity blockEntity)) return;
 
         // Remove dead mobs
-        blockEntity.activeMobs.removeIf(Mob::isRemoved);
+        blockEntity.activeMobs.removeIf(mob -> !mob.isAlive() || mob.isRemoved());
 
         // Explode if any mob is near
         for (Mob mob : blockEntity.activeMobs) {
@@ -53,7 +68,10 @@ public class ActivatorBlock extends Block implements EntityBlock {
         if (blockEntity.activeMobs.isEmpty() && blockEntity.nextWave <= ActivatorBlockEntity.MAX_WAVES) {
             if (blockEntity.tickCountdown <= 0) {
                 int wave = blockEntity.nextWave;
-                blockEntity.activeMobs.addAll(WaveManager.activateWave(world, pos, null, wave));
+                var newMobs = WaveManager.activateWave(world, pos, null, wave);
+                for (Mob mob : newMobs) {
+                    blockEntity.addMob(mob);
+                }
 
                 world.getServer().getPlayerList().getPlayers().forEach(p ->
                         p.sendSystemMessage(Component.literal("Wave " + wave + " has started!"))
@@ -61,12 +79,16 @@ public class ActivatorBlock extends Block implements EntityBlock {
 
                 blockEntity.nextWave++;
                 blockEntity.tickCountdown = TICKS_BETWEEN_WAVES;
+                blockEntity.setChanged(); // Mark as changed
             } else {
                 blockEntity.tickCountdown--;
+                // Only mark as changed occasionally to reduce disk I/O
+                if (blockEntity.tickCountdown % 20 == 0) {
+                    blockEntity.setChanged();
+                }
             }
         }
 
-        blockEntity.tick(world);
         // Always schedule next tick
         world.scheduleTick(pos, this, 1);
     }
@@ -82,8 +104,9 @@ public class ActivatorBlock extends Block implements EntityBlock {
         );
 
         blockEntity.nextWave = 1;
-        blockEntity.activeMobs.clear();
+        blockEntity.clearMobs(); // Use helper method that calls setChanged()
         blockEntity.tickCountdown = 0;
+        blockEntity.setChanged();
     }
 
     public void activateWave(Level world, BlockPos pos, Player player) {
@@ -92,7 +115,10 @@ public class ActivatorBlock extends Block implements EntityBlock {
 
         if (blockEntity.nextWave <= ActivatorBlockEntity.MAX_WAVES) {
             int wave = blockEntity.nextWave;
-            blockEntity.activeMobs.addAll(WaveManager.activateWave(world, pos, player, wave));
+            var newMobs = WaveManager.activateWave(world, pos, player, wave);
+            for (Mob mob : newMobs) {
+                blockEntity.addMob(mob);
+            }
 
             if (player != null) {
                 player.displayClientMessage(Component.literal("Wave " + wave + " has started!"), false);
@@ -103,6 +129,13 @@ public class ActivatorBlock extends Block implements EntityBlock {
             }
 
             blockEntity.nextWave++;
+            blockEntity.setChanged();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Nullable
+    private static <E extends BlockEntity, A extends BlockEntity> BlockEntityTicker<A> createTickerHelper(BlockEntityType<A> type, BlockEntityType<E> targetType, BlockEntityTicker<? super E> ticker) {
+        return targetType == type ? (BlockEntityTicker<A>) ticker : null;
     }
 }

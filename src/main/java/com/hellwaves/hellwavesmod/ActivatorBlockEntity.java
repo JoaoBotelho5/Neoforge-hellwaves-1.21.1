@@ -1,28 +1,78 @@
 package com.hellwaves.hellwavesmod;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class ActivatorBlockEntity extends BlockEntity {
 
     public static final int MAX_WAVES = 3;
 
-    public int nextWave = 1; // per-block
-    public int tickCountdown = 0; // per-block
+    public int nextWave = 1;
+    public int tickCountdown = 0;
     public final List<Mob> activeMobs = new ArrayList<>();
+    private final List<UUID> activeMobUUIDs = new ArrayList<>(); // For persistence
 
-    public ActivatorBlockEntity(BlockPos pos, net.minecraft.world.level.block.state.BlockState state) {
+    public ActivatorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ACTIVATOR_BLOCK_ENTITY.get(), pos, state);
+    }
+
+    @Override
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        tag.putInt("NextWave", nextWave);
+        tag.putInt("TickCountdown", tickCountdown);
+
+        // Save mob UUIDs for persistence
+        ListTag mobList = new ListTag();
+        for (Mob mob : activeMobs) {
+            if (mob != null && mob.isAlive()) {
+                CompoundTag mobTag = new CompoundTag();
+                mobTag.putUUID("UUID", mob.getUUID());
+                mobList.add(mobTag);
+            }
+        }
+        tag.put("ActiveMobs", mobList);
+    }
+
+    @Override
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        nextWave = tag.getInt("NextWave");
+        tickCountdown = tag.getInt("TickCountdown");
+
+        // Load mob UUIDs - we'll resolve them to actual mobs in the tick method
+        activeMobUUIDs.clear();
+        ListTag mobList = tag.getList("ActiveMobs", Tag.TAG_COMPOUND);
+        for (int i = 0; i < mobList.size(); i++) {
+            CompoundTag mobTag = mobList.getCompound(i);
+            activeMobUUIDs.add(mobTag.getUUID("UUID"));
+        }
+    }
+
+    public void resolveMobsFromUUIDs(ServerLevel world) {
+        activeMobs.clear();
+        for (UUID uuid : activeMobUUIDs) {
+            if (world.getEntity(uuid) instanceof Mob mob && mob.isAlive()) {
+                activeMobs.add(mob);
+            }
+        }
+        activeMobUUIDs.clear(); // Clear after resolving
+        setChanged(); // Mark as changed to save the cleared UUID list
     }
 
     public void checkCompletion(ServerLevel world) {
@@ -39,7 +89,6 @@ public class ActivatorBlockEntity extends BlockEntity {
                     world.addFreshEntity(new ItemEntity(world, worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5, stack));
                 }
 
-
                 // Remove the block
                 world.removeBlock(worldPosition, false);
             }
@@ -47,8 +96,13 @@ public class ActivatorBlockEntity extends BlockEntity {
     }
 
     public void tick(ServerLevel world) {
+        // If we have UUIDs to resolve (from loading), resolve them first
+        if (!activeMobUUIDs.isEmpty()) {
+            resolveMobsFromUUIDs(world);
+        }
+
         // Remove dead mobs
-        activeMobs.removeIf(mob -> mob.level() != world || mob.isRemoved());
+        activeMobs.removeIf(mob -> mob.level() != world || !mob.isAlive() || mob.isRemoved());
 
         // Check for mobs nearby
         for (Mob mob : activeMobs) {
@@ -63,6 +117,7 @@ public class ActivatorBlockEntity extends BlockEntity {
                 nextWave = 1;
                 activeMobs.clear();
                 tickCountdown = 0;
+                setChanged(); // Save changes
                 return;
             }
         }
@@ -73,11 +128,28 @@ public class ActivatorBlockEntity extends BlockEntity {
                 activeMobs.addAll(WaveManager.activateWave(world, worldPosition, null, nextWave));
                 nextWave++;
                 tickCountdown = 1200;
-            } else tickCountdown--;
+                setChanged(); // Save changes
+            } else {
+                tickCountdown--;
+                // Only mark as changed occasionally to reduce disk I/O
+                if (tickCountdown % 20 == 0) {
+                    setChanged();
+                }
+            }
         }
 
         checkCompletion(world);
     }
 
+    // Helper method to add mob and mark as changed
+    public void addMob(Mob mob) {
+        activeMobs.add(mob);
+        setChanged();
+    }
 
+    // Helper method to clear mobs and mark as changed
+    public void clearMobs() {
+        activeMobs.clear();
+        setChanged();
+    }
 }
