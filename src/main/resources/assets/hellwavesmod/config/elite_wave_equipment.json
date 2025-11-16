@@ -1,0 +1,49 @@
+{
+  "elite_wave1": {
+    "mainhand": "minecraft:iron_sword",
+    "offhand": "minecraft:shield",
+    "helmet": "minecraft:iron_helmet",
+    "chestplate": "minecraft:iron_chestplate",
+    "leggings": "minecraft:iron_leggings",
+    "boots": "minecraft:iron_boots",
+    "effects": [
+      {"effect": "minecraft:strength", "duration": 999999, "amplifier": 0}
+    ]
+  },
+  "elite_wave2": {
+    "mainhand": "minecraft:diamond_sword",
+    "offhand": "minecraft:shield",
+    "helmet": "minecraft:diamond_helmet",
+    "chestplate": "minecraft:diamond_chestplate",
+    "leggings": "minecraft:diamond_leggings",
+    "boots": "minecraft:diamond_boots"
+
+  },
+  "elite_wave3": {
+    "mainhand": "minecraft:diamond_sword",
+    "offhand": "minecraft:shield",
+    "helmet": "minecraft:diamond_helmet",
+    "chestplate": "minecraft:diamond_chestplate",
+    "leggings": "minecraft:diamond_leggings",
+    "boots": "minecraft:diamond_boots"
+
+  },
+  "elite_wave4": {
+    "mainhand": "minecraft:netherite_sword",
+    "offhand": "minecraft:totem_of_undying",
+    "helmet": "minecraft:netherite_helmet",
+    "chestplate": "minecraft:netherite_chestplate",
+    "leggings": "minecraft:netherite_leggings",
+    "boots": "minecraft:netherite_boots"
+
+  },
+  "elite_wave5": {
+    "mainhand": "minecraft:netherite_sword",
+    "offhand": "minecraft:totem_of_undying",
+    "helmet": "minecraft:netherite_helmet",
+    "chestplate": "minecraft:netherite_chestplate",
+    "leggings": "minecraft:netherite_leggings",
+    "boots": "minecraft:netherite_boots"
+
+  }
+}

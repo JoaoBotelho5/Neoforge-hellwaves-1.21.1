@@ -61,7 +61,7 @@ public class Wave {
     }
 
 
-    private static class WalkCenterGoal extends Goal {
+    public static class WalkCenterGoal extends Goal {
         private final Mob mob;
         private final BlockPos center;
         private final double speed;
@@ -76,7 +76,8 @@ public class Wave {
         @Override
         public boolean canUse() {
 
-            if (!(mob.level().getBlockState(center).getBlock() instanceof ActivatorBlock)) {
+            if (!(mob.level().getBlockState(center).getBlock() instanceof ActivatorBlock) &&
+            !(mob.level().getBlockState(center).getBlock() instanceof EliteActivatorBlock)) {
                 return false;
             }
 

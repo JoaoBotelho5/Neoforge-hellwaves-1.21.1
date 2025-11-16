@@ -32,4 +32,17 @@ public class HWDeferredRegister {
            "activator_block",
             () -> new BlockItem(ACTIVATOR_BLOCK.get(), new Item.Properties())
     );
+
+    public static final DeferredHolder<Block, EliteActivatorBlock> ELITE_ACTIVATOR_BLOCK = BLOCKS.register(
+            "elite_activator_block",
+            () -> new EliteActivatorBlock(BlockBehaviour.Properties.of()
+                    .strength(5.0f)
+                    .requiresCorrectToolForDrops()
+            )
+    );
+
+    public static final DeferredHolder<Item, BlockItem> ELITE_ACTIVATOR_BLOCK_ITEM = ITEMS.register(
+            "elite_activator_block",
+            () -> new BlockItem(ELITE_ACTIVATOR_BLOCK.get(), new Item.Properties())
+    );
 }

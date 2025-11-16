@@ -23,4 +23,15 @@ public class ModBlockEntities {
                             HWDeferredRegister.ACTIVATOR_BLOCK.get()
                     ).build(null)
             );
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<EliteActivatorBlockEntity>>
+            ELITE_ACTIVATOR_BLOCK_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "elite_activator_block_entity",
+                    () -> BlockEntityType.Builder.of(
+                            EliteActivatorBlockEntity::new,
+                            HWDeferredRegister.ELITE_ACTIVATOR_BLOCK.get()
+                    ).build(null)
+            );
 }
+

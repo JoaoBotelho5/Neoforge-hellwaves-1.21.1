@@ -28,5 +28,14 @@ public class HWEvents {
             event.setCancellationResult(InteractionResult.SUCCESS);
             event.setCanceled(true);
         }
+
+        else if (block instanceof EliteActivatorBlock eliteActivatorBlock) {
+            System.out.println("Right-click detected on EliteActivatorBlock!");
+            if (!level.isClientSide()) {
+                eliteActivatorBlock.activateWave(level, hit.getBlockPos(), player);
+            }
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            event.setCanceled(true);
+        }
     }
 }

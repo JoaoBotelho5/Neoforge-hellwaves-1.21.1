@@ -19,17 +19,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class ActivatorBlockEntity extends BlockEntity {
-
-    public static final int MAX_WAVES = 3;
+public class EliteActivatorBlockEntity extends BlockEntity {
+    public static final int MAX_WAVES = 5; // More waves for elite version
 
     public int nextWave = 1;
     public int tickCountdown = 0;
     public final List<Mob> activeMobs = new ArrayList<>();
-    private final List<UUID> activeMobUUIDs = new ArrayList<>(); // For persistence
+    private final List<UUID> activeMobUUIDs = new ArrayList<>();
 
-    public ActivatorBlockEntity(BlockPos pos, BlockState state) {
-        super(ModBlockEntities.ACTIVATOR_BLOCK_ENTITY.get(), pos, state);
+    public EliteActivatorBlockEntity(BlockPos pos, BlockState state) {
+        super(ModBlockEntities.ELITE_ACTIVATOR_BLOCK_ENTITY.get(), pos, state);
     }
 
     @Override
@@ -38,7 +37,6 @@ public class ActivatorBlockEntity extends BlockEntity {
         tag.putInt("NextWave", nextWave);
         tag.putInt("TickCountdown", tickCountdown);
 
-        // Save mob UUIDs for persistence
         ListTag mobList = new ListTag();
         for (Mob mob : activeMobs) {
             if (mob != null && mob.isAlive()) {
@@ -56,7 +54,6 @@ public class ActivatorBlockEntity extends BlockEntity {
         nextWave = tag.getInt("NextWave");
         tickCountdown = tag.getInt("TickCountdown");
 
-        // Load mob UUIDs - we'll resolve them to actual mobs in the tick method
         activeMobUUIDs.clear();
         ListTag mobList = tag.getList("ActiveMobs", Tag.TAG_COMPOUND);
         for (int i = 0; i < mobList.size(); i++) {
@@ -72,72 +69,69 @@ public class ActivatorBlockEntity extends BlockEntity {
                 activeMobs.add(mob);
             }
         }
-        activeMobUUIDs.clear(); // Clear after resolving
-        setChanged(); // Mark as changed to save the cleared UUID list
+        activeMobUUIDs.clear();
+        setChanged();
     }
 
     public void checkCompletion(ServerLevel world) {
-        // If all waves are done and no active mobs remain
         if (nextWave > MAX_WAVES && activeMobs.isEmpty()) {
             if (!world.isClientSide) {
+                // Better rewards for elite version
                 ItemStack[] drops = {
-                        new ItemStack(Items.DIAMOND_BLOCK, 1),
-                        new ItemStack(Items.EMERALD_BLOCK, 1),
-                        new ItemStack(Items.ANCIENT_DEBRIS, 1)
+                        new ItemStack(Items.NETHER_STAR, 1),
+                        new ItemStack(Items.DIAMOND_BLOCK, 10),
+                        new ItemStack(Items.EMERALD_BLOCK, 10),
+                        new ItemStack(Items.ANCIENT_DEBRIS, 5)
                 };
 
                 for (ItemStack stack : drops) {
                     world.addFreshEntity(new ItemEntity(world, worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5, stack));
                 }
 
-                // Remove the block
                 world.removeBlock(worldPosition, false);
             }
         }
     }
 
     public void tick(ServerLevel world) {
-        // If we have UUIDs to resolve (from loading), resolve them first
         if (!activeMobUUIDs.isEmpty()) {
             resolveMobsFromUUIDs(world);
         }
 
-        // Remove dead mobs
         activeMobs.removeIf(mob -> mob.level() != world || !mob.isAlive() || mob.isRemoved());
 
-        // Check for mobs nearby
         for (Mob mob : activeMobs) {
             if (mob.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 4) {
                 world.explode(null,
                         worldPosition.getX() + 0.5,
                         worldPosition.getY() + 0.5,
                         worldPosition.getZ() + 0.5,
-                        25f,
+                        50f,
                         Level.ExplosionInteraction.BLOCK);
 
                 nextWave = 1;
                 activeMobs.clear();
                 tickCountdown = 0;
-                setChanged(); // Save changes
+                setChanged();
                 return;
             }
         }
 
-        // Automatic wave activation
         if (activeMobs.isEmpty() && nextWave <= MAX_WAVES) {
             if (tickCountdown <= 0) {
-                activeMobs.addAll(WaveManager.activateWave(world, worldPosition, null, nextWave));
+                activeMobs.addAll(EliteWaveManager.activateWave(world, worldPosition, null, nextWave));
 
                 world.getServer().getPlayerList().getPlayers().forEach(p ->
-                        p.sendSystemMessage(Component.literal("Wave " + nextWave + " has started!"))
+                        p.sendSystemMessage(Component.literal("§6Elite Wave " + nextWave + " has started!§r"))
                 );
 
                 nextWave++;
-                tickCountdown = 1200;
-                setChanged(); // Save changes
+                tickCountdown = 1000;
+                setChanged();
+
+
             } else {
                 tickCountdown--;
-                // Only mark as changed occasionally to reduce disk I/O
                 if (tickCountdown % 20 == 0) {
                     setChanged();
                 }
@@ -147,13 +141,11 @@ public class ActivatorBlockEntity extends BlockEntity {
         checkCompletion(world);
     }
 
-    // Helper method to add mob and mark as changed
     public void addMob(Mob mob) {
         activeMobs.add(mob);
         setChanged();
     }
 
-    // Helper method to clear mobs and mark as changed
     public void clearMobs() {
         activeMobs.clear();
         setChanged();
