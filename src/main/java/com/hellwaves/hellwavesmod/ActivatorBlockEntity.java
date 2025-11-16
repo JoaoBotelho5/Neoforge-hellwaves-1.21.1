@@ -7,6 +7,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
@@ -22,9 +23,11 @@ import java.util.UUID;
 public class ActivatorBlockEntity extends BlockEntity {
 
     public static final int MAX_WAVES = 3;
+    private static final int GLOWING_DELAY = 2000; // 100 segundos (20 ticks por segundo * 100)
 
     public int nextWave = 1;
     public int tickCountdown = 0;
+    public int glowingCountdown = 0; // Novo contador para glowing
     public final List<Mob> activeMobs = new ArrayList<>();
     private final List<UUID> activeMobUUIDs = new ArrayList<>(); // For persistence
 
@@ -144,9 +147,39 @@ public class ActivatorBlockEntity extends BlockEntity {
             }
         }
 
+        if (nextWave > MAX_WAVES && !activeMobs.isEmpty() && glowingCountdown == 0) {
+            glowingCountdown = GLOWING_DELAY;
+            setChanged();
+        }
+
+        // Aplicar glowing effect quando o contador chegar a 0
+        if (glowingCountdown > 0) {
+            glowingCountdown--;
+
+            if (glowingCountdown <= 0) {
+                applyGlowingToAllMobs(world);
+                glowingCountdown = -1; // Marcar como já aplicado
+                setChanged();
+            }
+        }
+
         checkCompletion(world);
     }
 
+    private void applyGlowingToAllMobs(ServerLevel world) {
+        for (Mob mob : activeMobs) {
+            if (mob.isAlive() && !mob.isRemoved()) {
+                // Versão mais direta
+                mob.addEffect(new MobEffectInstance(
+                        net.minecraft.world.effect.MobEffects.GLOWING,
+                        999999,
+                        0,
+                        false,
+                        false
+                ));
+            }
+        }
+    }
     // Helper method to add mob and mark as changed
     public void addMob(Mob mob) {
         activeMobs.add(mob);

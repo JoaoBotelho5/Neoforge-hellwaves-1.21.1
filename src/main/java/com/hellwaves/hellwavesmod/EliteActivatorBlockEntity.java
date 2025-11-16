@@ -7,6 +7,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
@@ -21,10 +22,13 @@ import java.util.UUID;
 
 public class EliteActivatorBlockEntity extends BlockEntity {
     public static final int MAX_WAVES = 5; // More waves for elite version
+    private static final int GLOWING_DELAY = 2000; // 100 segundos (20 ticks por segundo * 100)
+
 
     public int nextWave = 1;
     public int tickCountdown = 0;
     public final List<Mob> activeMobs = new ArrayList<>();
+    public int glowingCountdown = 0; // Novo contador para glowing
     private final List<UUID> activeMobUUIDs = new ArrayList<>();
 
     public EliteActivatorBlockEntity(BlockPos pos, BlockState state) {
@@ -100,6 +104,23 @@ public class EliteActivatorBlockEntity extends BlockEntity {
 
         activeMobs.removeIf(mob -> mob.level() != world || !mob.isAlive() || mob.isRemoved());
 
+        if (nextWave > MAX_WAVES && !activeMobs.isEmpty() && glowingCountdown == 0) {
+            glowingCountdown = GLOWING_DELAY;
+            setChanged();
+        }
+
+        // Aplicar glowing effect quando o contador chegar a 0
+        if (glowingCountdown > 0) {
+            glowingCountdown--;
+
+            if (glowingCountdown <= 0) {
+                applyGlowingToAllMobs(world);
+                glowingCountdown = -1; // Marcar como já aplicado
+                setChanged();
+            }
+        }
+
+
         for (Mob mob : activeMobs) {
             if (mob.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 4) {
                 world.explode(null,
@@ -139,6 +160,21 @@ public class EliteActivatorBlockEntity extends BlockEntity {
         }
 
         checkCompletion(world);
+    }
+
+    private void applyGlowingToAllMobs(ServerLevel world) {
+        for (Mob mob : activeMobs) {
+            if (mob.isAlive() && !mob.isRemoved()) {
+                // Versão mais direta
+                mob.addEffect(new MobEffectInstance(
+                        net.minecraft.world.effect.MobEffects.GLOWING,
+                        999999,
+                        0,
+                        false,
+                        false
+                ));
+            }
+        }
     }
 
     public void addMob(Mob mob) {
