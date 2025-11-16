@@ -10,7 +10,6 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
-import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -26,7 +25,7 @@ import net.minecraft.world.level.ServerLevelAccessor;
 
 import javax.annotation.Nullable;
 
-public class PiglinLord extends Zombie {
+public class UndeadLord extends Zombie {
     // Custom stats
     private static final double BASE_HEALTH = 100.0D;
     private static final double BASE_DAMAGE = 12.0D;
@@ -43,14 +42,14 @@ public class PiglinLord extends Zombie {
 
     // Dash ability tracking
     private static final int DASH_COOLDOWN_TICKS = 100; // 5 seconds (20 ticks * 5)
-    private static final int DASH_DURATION_TICKS = 20; // 1.00 seconds (1 tick = 1.00s)
+    private static final int DASH_DURATION_TICKS = 15; // 0.75 seconds (1 tick = 1.00s)
     private int dashCooldownTimer = 0;
     private boolean isDashing = false;
     private int dashDurationTimer = 0;
 
-    public PiglinLord(EntityType<? extends Zombie> entityType, Level level) {
+    public UndeadLord(EntityType<? extends Zombie> entityType, Level level) {
         super(entityType, level);
-        this.setCustomName(Component.literal("§6Piglin Lord§r"));
+        this.setCustomName(Component.literal("§6Undead Lord§r"));
         this.setCustomNameVisible(true);
         this.xpReward = 1000;
     }
@@ -182,12 +181,12 @@ public class PiglinLord extends Zombie {
             // Visual effect - particles
             // You can add particle effects here if desired
 
-            System.out.println("Piglin Lord used Dash!");
+            System.out.println("Undead Lord used Dash!");
         }
     }
 
     private void applySpawnGear() {
-        System.out.println("=== APPLYING PIGLIN LORD GEAR ===");
+        System.out.println("=== APPLYING UNDEAD LORD GEAR ===");
 
         // Equipar o machado - VAI APARECER porque Zombie mostra itens!
         this.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, new net.minecraft.world.item.ItemStack(Items.GOLDEN_AXE));
@@ -214,7 +213,7 @@ public class PiglinLord extends Zombie {
             // Spawn 2 Esqueletos Arqueiros
             for (int i = 0; i < 2; i++) {
                 Skeleton archerSkeleton = new Skeleton(EntityType.SKELETON, level);
-                archerSkeleton.getPersistentData().putBoolean("PiglinLordMinion", true);
+                archerSkeleton.getPersistentData().putBoolean("UndeadLordMinion", true);
 
                 archerSkeleton.setPos(this.getX() + (this.random.nextDouble() - 0.5) * 3,
                         this.getY(),
@@ -241,7 +240,7 @@ public class PiglinLord extends Zombie {
 
             // Spawn 1 Zombie com machado
             Zombie axeZombie = new Zombie(EntityType.ZOMBIE, level);
-            axeZombie.getPersistentData().putBoolean("PiglinLordMinion", true);
+            axeZombie.getPersistentData().putBoolean("UndeadLordMinion", true);
 
             axeZombie.setPos(this.getX() + (this.random.nextDouble() - 0.5) * 3,
                     this.getY(),
@@ -268,7 +267,7 @@ public class PiglinLord extends Zombie {
             if (minionsSpawned <= 3) { // Only show message for first 3 spawns
                 this.level().players().forEach(player -> {
                     if (player.distanceTo(this) < 20) {
-                        player.displayClientMessage(Component.literal("§6The Zombie Lord calls for reinforcements!§r"), true);
+                        player.displayClientMessage(Component.literal("§6The Undead Lord calls for reinforcements!§r"), true);
                     }
                 });
             }
@@ -278,9 +277,9 @@ public class PiglinLord extends Zombie {
     @Override
     public boolean isAlliedTo(net.minecraft.world.entity.Entity other) {
         // Treat Piglin Lord and all minions as allies
-        return other instanceof PiglinLord
-                || other.getPersistentData().getBoolean("PiglinLordMinion")
-                || this.getPersistentData().getBoolean("PiglinLordMinion");
+        return other instanceof UndeadLord
+                || other.getPersistentData().getBoolean("UndeadLordMinion")
+                || this.getPersistentData().getBoolean("UndeadLordMinion");
     }
 
     @Override
@@ -291,7 +290,7 @@ public class PiglinLord extends Zombie {
             this.level().playSound(null, this.blockPosition(), SoundEvents.ZOMBIE_DEATH, this.getSoundSource(), 2.0F, 1.0F);
 
             this.level().players().forEach(player ->
-                    player.displayClientMessage(Component.literal("§6The Zombie Lord has been defeated!§r"), true)
+                    player.displayClientMessage(Component.literal("§6The Undead Lord has been defeated!§r"), true)
             );
         }
     }

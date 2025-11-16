@@ -12,7 +12,7 @@ public class HWClientSetup {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         // Use o renderizador padrão de Zombie - funciona perfeitamente!
-        event.registerEntityRenderer(HWDeferredRegister.PIGLIN_LORD.get(),
+        event.registerEntityRenderer(HWDeferredRegister.UNDEAD_LORD.get(),
                 context -> new ZombieRenderer(context)
         );
     }

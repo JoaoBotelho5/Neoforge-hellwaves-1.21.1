@@ -56,9 +56,9 @@ public class HWDeferredRegister {
             () -> new BlockItem(ELITE_ACTIVATOR_BLOCK.get(), new Item.Properties())
     );
 
-    public static final DeferredHolder<EntityType<?>, EntityType<PiglinLord>> PIGLIN_LORD = ENTITIES.register(
+    public static final DeferredHolder<EntityType<?>, EntityType<UndeadLord>> UNDEAD_LORD = ENTITIES.register(
             "piglin_lord",
-            () -> EntityType.Builder.of(PiglinLord::new, MobCategory.MONSTER)
+            () -> EntityType.Builder.of(UndeadLord::new, MobCategory.MONSTER)
                     .sized(0.6F, 1.95F) // Tamanho normal de zombie
                     .clientTrackingRange(8)
                     .build("piglin_lord")
@@ -70,7 +70,7 @@ public class HWDeferredRegister {
 
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         System.out.println("=== Registering Piglin Lord Attributes ===");
-        event.put(PIGLIN_LORD.get(), PiglinLord.createAttributes().build());
+        event.put(UNDEAD_LORD.get(), UndeadLord.createAttributes().build());
         System.out.println("=== Piglin Lord Attributes Registered ===");
     }
 
