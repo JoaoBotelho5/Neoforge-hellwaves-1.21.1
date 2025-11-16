@@ -34,7 +34,7 @@ public class HWDeferredRegister {
             "activator_block",
             // STATS of the custom block 1
             () -> new ActivatorBlock(BlockBehaviour.Properties.of()
-                    .strength(3.0f)
+                    .strength(-1.0f)
                     .requiresCorrectToolForDrops()
             )
     );
@@ -47,7 +47,7 @@ public class HWDeferredRegister {
     public static final DeferredHolder<Block, EliteActivatorBlock> ELITE_ACTIVATOR_BLOCK = BLOCKS.register(
             "elite_activator_block",
             () -> new EliteActivatorBlock(BlockBehaviour.Properties.of()
-                    .strength(5.0f)
+                    .strength(-1.0f)
                     .requiresCorrectToolForDrops()
             )
     );

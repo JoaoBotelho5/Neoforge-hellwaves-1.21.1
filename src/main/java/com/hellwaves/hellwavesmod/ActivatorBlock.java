@@ -55,12 +55,19 @@ public class ActivatorBlock extends Block implements EntityBlock {
 
         // Remove dead mobs
         blockEntity.activeMobs.removeIf(mob -> !mob.isAlive() || mob.isRemoved());
+        if (!blockEntity.activeMobs.isEmpty()) {
+            final double ACTIVATION_RADIUS = 2.0; // VALOR X AND Y
+            final double DOUBLE_ACTIVATION_RADIUS_SQR = ACTIVATION_RADIUS * ACTIVATION_RADIUS;
 
-        // Explode if any mob is near
-        for (Mob mob : blockEntity.activeMobs) {
-            if (mob.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 4) {
-                explode(world, pos, blockEntity);
-                return;
+            for (Mob mob : blockEntity.activeMobs) {
+                double deltaX = mob.getX() - (pos.getX() + 0.5);
+                double deltaZ = mob.getZ() - (pos.getZ() + 0.5);
+                double horizontalDistanceSqr = deltaX * deltaX + deltaZ * deltaZ;
+
+                if (horizontalDistanceSqr <= DOUBLE_ACTIVATION_RADIUS_SQR) {
+                    explode(world, pos, blockEntity);
+                    return;
+                }
             }
         }
 
