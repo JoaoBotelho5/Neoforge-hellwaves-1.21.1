@@ -1,6 +1,7 @@
 package com.hellwaves.hellwavesmod;
 
 import com.google.gson.JsonObject;
+import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
@@ -38,6 +39,12 @@ public class Wave {
                 int y = world.getHeight(Heightmap.Types.MOTION_BLOCKING, (int)x, (int)z);
 
                 mob.moveTo(x, y, z, 0, 0);
+
+                // CONFIGURAÇÃO ESPECIAL PARA O WARPED MINER
+                if (mob instanceof WarpedMiner warpedMiner) {
+                    warpedMiner.setTargetBlock(pos); // Define o bloco alvo como o ativador
+                }
+
                 world.addFreshEntity(mob);
 
                 if (waveConfig != null) {

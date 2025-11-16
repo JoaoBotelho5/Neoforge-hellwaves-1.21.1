@@ -1,5 +1,6 @@
 package com.hellwaves.hellwavesmod;
 
+import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -57,11 +58,20 @@ public class HWDeferredRegister {
     );
 
     public static final DeferredHolder<EntityType<?>, EntityType<UndeadLord>> UNDEAD_LORD = ENTITIES.register(
-            "piglin_lord",
+            "undead_lord",
             () -> EntityType.Builder.of(UndeadLord::new, MobCategory.MONSTER)
                     .sized(0.6F, 1.95F) // Tamanho normal de zombie
                     .clientTrackingRange(8)
-                    .build("piglin_lord")
+                    .build("undead_lord")
+    );
+
+    // ADICIONE ESTE REGISTRO PARA O WARPED MINER
+    public static final DeferredHolder<EntityType<?>, EntityType<WarpedMiner>> WARPED_MINER = ENTITIES.register(
+            "warped_miner",
+            () -> EntityType.Builder.of(WarpedMiner::new, MobCategory.MONSTER)
+                    .sized(0.6F, 1.95F) // Tamanho do Zombified Piglin
+                    .clientTrackingRange(8)
+                    .build("warped_miner")
     );
 
     public static void registerAttributes(IEventBus modEventBus) {
@@ -69,9 +79,11 @@ public class HWDeferredRegister {
     }
 
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
-        System.out.println("=== Registering Piglin Lord Attributes ===");
+        System.out.println("=== Registering Undead Lord Attributes ===");
         event.put(UNDEAD_LORD.get(), UndeadLord.createAttributes().build());
-        System.out.println("=== Piglin Lord Attributes Registered ===");
+        System.out.println("=== Undead Lord Attributes Registered ===");
+
+        event.put(WARPED_MINER.get(), WarpedMiner.createAttributes().build());
     }
 
 }

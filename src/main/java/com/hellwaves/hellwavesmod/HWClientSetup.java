@@ -1,6 +1,8 @@
 package com.hellwaves.hellwavesmod;
 
+import com.hellwaves.hellwavesmod.client.WarpedMinerRenderer;
 import net.minecraft.client.renderer.entity.ZombieRenderer;
+import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -14,6 +16,11 @@ public class HWClientSetup {
         // Use o renderizador padrão de Zombie - funciona perfeitamente!
         event.registerEntityRenderer(HWDeferredRegister.UNDEAD_LORD.get(),
                 context -> new ZombieRenderer(context)
+        );
+
+        // Use o renderizador padrão de Piglin para o Warped Miner
+        event.registerEntityRenderer(HWDeferredRegister.WARPED_MINER.get(),
+                context -> new WarpedMinerRenderer(context)
         );
     }
 }
