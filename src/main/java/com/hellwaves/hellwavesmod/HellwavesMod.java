@@ -18,7 +18,11 @@ public class HellwavesMod {
 
         HWDeferredRegister.ITEMS.register(modBus);
 
+        HWDeferredRegister.ENTITIES.register(modBus);
+
         ModBlockEntities.BLOCK_ENTITIES.register(modBus);
+
+        HWDeferredRegister.registerAttributes(modBus);
 
         NeoForge.EVENT_BUS.register(new HWEvents());
 

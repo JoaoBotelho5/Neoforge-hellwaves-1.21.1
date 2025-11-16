@@ -35,7 +35,7 @@ public class WaveManager {
         for (int i = 0; i < 10; i++) enemies3.add(EntityType.STRAY);
         for (int i = 0; i < 6; i++) enemies3.add(EntityType.SPIDER);
         for (int i = 0; i < 5; i++) enemies3.add(EntityType.WITHER_SKELETON);
-        for (int i = 0; i < 1; i++) enemies3.add(EntityType.ZOMBIFIED_PIGLIN);
+        enemies3.add(HWDeferredRegister.PIGLIN_LORD.get()); // BOSS MOB - LAST SPAWN
         WAVES.add(new Wave(enemies3));
 
         try (InputStreamReader reader = new InputStreamReader(
