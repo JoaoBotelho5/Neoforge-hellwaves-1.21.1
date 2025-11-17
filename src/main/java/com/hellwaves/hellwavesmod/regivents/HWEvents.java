@@ -1,5 +1,7 @@
-package com.hellwaves.hellwavesmod;
+package com.hellwaves.hellwavesmod.regivents;
 
+import com.hellwaves.hellwavesmod.Blocks.ActivatorBlock;
+import com.hellwaves.hellwavesmod.Blocks.EliteActivatorBlock;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;

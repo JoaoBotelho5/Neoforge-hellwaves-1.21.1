@@ -1,6 +1,10 @@
-package com.hellwaves.hellwavesmod;
+package com.hellwaves.hellwavesmod.regivents;
 
+import com.hellwaves.hellwavesmod.Blocks.ActivatorBlock;
+import com.hellwaves.hellwavesmod.Blocks.EliteActivatorBlock;
+import com.hellwaves.hellwavesmod.HWMobs.UndeadLord;
 import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
+import com.hellwaves.hellwavesmod.HellwavesMod;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;

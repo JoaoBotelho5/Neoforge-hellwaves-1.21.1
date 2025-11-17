@@ -1,7 +1,11 @@
-package com.hellwaves.hellwavesmod;
+package com.hellwaves.hellwavesmod.Waves;
 
 import com.google.gson.JsonObject;
+import com.hellwaves.hellwavesmod.Blocks.ActivatorBlock;
+import com.hellwaves.hellwavesmod.Blocks.EliteActivatorBlock;
+import com.hellwaves.hellwavesmod.equipment.EquipmentHelper;
 import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
+import com.hellwaves.hellwavesmod.WavesManager.WaveManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;

@@ -1,6 +1,8 @@
-package com.hellwaves.hellwavesmod;
+package com.hellwaves.hellwavesmod.Waves;
 
 import com.google.gson.JsonObject;
+import com.hellwaves.hellwavesmod.equipment.EliteEquipmentHelper;
+import com.hellwaves.hellwavesmod.WavesManager.EliteWaveManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;

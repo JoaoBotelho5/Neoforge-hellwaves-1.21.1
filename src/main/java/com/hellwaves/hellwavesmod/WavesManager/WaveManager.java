@@ -1,7 +1,9 @@
-package com.hellwaves.hellwavesmod;
+package com.hellwaves.hellwavesmod.WavesManager;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
+import com.hellwaves.hellwavesmod.Waves.Wave;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;

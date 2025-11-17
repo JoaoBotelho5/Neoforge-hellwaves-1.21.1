@@ -1,4 +1,4 @@
-package com.hellwaves.hellwavesmod;
+package com.hellwaves.hellwavesmod.HWMobs;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;

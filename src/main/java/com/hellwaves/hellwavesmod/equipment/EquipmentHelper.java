@@ -1,4 +1,4 @@
-package com.hellwaves.hellwavesmod;
+package com.hellwaves.hellwavesmod.equipment;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;

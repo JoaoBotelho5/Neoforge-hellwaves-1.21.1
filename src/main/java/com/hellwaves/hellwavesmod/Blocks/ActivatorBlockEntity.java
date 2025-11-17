@@ -1,5 +1,6 @@
-package com.hellwaves.hellwavesmod;
+package com.hellwaves.hellwavesmod.Blocks;
 
+import com.hellwaves.hellwavesmod.WavesManager.WaveManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;

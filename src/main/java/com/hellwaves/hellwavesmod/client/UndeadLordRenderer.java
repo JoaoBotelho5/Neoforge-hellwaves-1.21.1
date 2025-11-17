@@ -1,6 +1,6 @@
 package com.hellwaves.hellwavesmod.client;
 
-import com.hellwaves.hellwavesmod.UndeadLord;
+import com.hellwaves.hellwavesmod.HWMobs.UndeadLord;
 import net.minecraft.client.model.PiglinModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;

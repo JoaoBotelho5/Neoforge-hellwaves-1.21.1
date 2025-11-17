@@ -1,6 +1,10 @@
 package com.hellwaves.hellwavesmod;
 
 
+import com.hellwaves.hellwavesmod.Blocks.ModBlockEntities;
+import com.hellwaves.hellwavesmod.equipment.EquipmentConfig;
+import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
+import com.hellwaves.hellwavesmod.regivents.HWEvents;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;

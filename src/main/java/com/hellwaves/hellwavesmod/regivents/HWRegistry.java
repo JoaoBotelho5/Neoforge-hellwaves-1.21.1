@@ -1,5 +1,7 @@
-package com.hellwaves.hellwavesmod;
+package com.hellwaves.hellwavesmod.regivents;
 
+import com.hellwaves.hellwavesmod.HellwavesMod;
+import com.hellwaves.hellwavesmod.Waves.Wave;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;

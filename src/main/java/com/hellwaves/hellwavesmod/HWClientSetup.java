@@ -1,8 +1,8 @@
 package com.hellwaves.hellwavesmod;
 
 import com.hellwaves.hellwavesmod.client.WarpedMinerRenderer;
+import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
 import net.minecraft.client.renderer.entity.ZombieRenderer;
-import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;

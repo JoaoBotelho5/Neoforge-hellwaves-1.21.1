@@ -1,4 +1,4 @@
-package com.hellwaves.hellwavesmod;
+package com.hellwaves.hellwavesmod.equipment;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
