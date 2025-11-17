@@ -1,6 +1,8 @@
 package com.hellwaves.hellwavesmod.HWMobs;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -43,12 +45,23 @@ public class WarpedMiner extends ZombifiedPiglin {
             Blocks.STRUCTURE_VOID
     );
 
-    private static final double MAX_BREAK_HARDNESS = 3.0D; // Deepslate tem 3.0 de dureza
-    private static final int BREAK_INTERVAL = 40; // 2 segundos (20 ticks * 2)
+    // Sistema de quebra progressiva
+    private static final Map<Block, Integer> BREAK_TIMES = Map.of(
+            Blocks.OBSIDIAN, 900, // 45 segundos
+            Blocks.CRYING_OBSIDIAN, 900, // 45 segundos
+            Blocks.RESPAWN_ANCHOR, 600, // 30 segundos
+            Blocks.ANCIENT_DEBRIS, 1200 // 60 segundos
+    );
+
+    private static final int BREAK_INTERVAL = 20; // 1 segundo (20 ticks * 1)
 
     private int breakTimer = 0;
     private boolean hasSpawnedGear = false;
     private BlockPos targetBlockPos; // Bloco alvo que ele deve alcançar
+
+    // Sistema de quebra progressiva
+    private BlockPos currentBreakingPos = null;
+    private int breakingProgress = 0;
 
     public WarpedMiner(EntityType<? extends ZombifiedPiglin> entityType, Level level) {
         super(entityType, level);
@@ -60,11 +73,11 @@ public class WarpedMiner extends ZombifiedPiglin {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new MoveToTargetBlockGoal());
+        this.goalSelector.addGoal(1, new MoveToTargetBlockGoal()); // Alta prioridade
         this.goalSelector.addGoal(2, new BreakBlocksInPathGoal());
-        this.goalSelector.addGoal(3, new WaterAvoidingRandomStrollGoal(this, 0.8D));
-        this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
-        this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
+        this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.8D)); // Prioridade mais baixa
+        this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 8.0F));
+        this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
 
         // Só ataca se for atacado primeiro
         this.targetSelector.addGoal(0, new HurtByTargetGoal(this));
@@ -84,21 +97,54 @@ public class WarpedMiner extends ZombifiedPiglin {
     public void tick() {
         super.tick();
 
-        // Apply gear on first tick if not already applied
         if (!hasSpawnedGear && !this.level().isClientSide()) {
             applySpawnGear();
             hasSpawnedGear = true;
         }
 
-        // Handle block breaking
         if (!this.level().isClientSide() && this.isAlive()) {
             breakTimer++;
 
+            // Só quebrar blocos se não estiver se movendo bem em direção ao alvo
             if (breakTimer >= BREAK_INTERVAL) {
-                breakBlocksInPath();
+                if (shouldBreakBlocks()) {
+                    breakBlocksInPath();
+                }
                 breakTimer = 0;
             }
+
+            // Atualizar quebra progressiva a cada tick
+            if (currentBreakingPos != null) {
+                continueBreakingBlock();
+            }
         }
+    }
+
+    // Novo método para determinar se deve quebrar blocos
+    private boolean shouldBreakBlocks() {
+        if (this.targetBlockPos == null) return false;
+
+        BlockPos currentPos = this.blockPosition();
+
+        // Verificar se está se movendo em direção ao alvo
+        double distanceToTarget = this.distanceToSqr(
+                this.targetBlockPos.getX() + 0.5,
+                this.targetBlockPos.getY(),
+                this.targetBlockPos.getZ() + 0.5
+        );
+
+        // Se está muito longe ou não está se movendo, quebrar blocos
+        if (distanceToTarget > 100.0) { // 10 blocos de distância
+            return true;
+        }
+
+        // Verificar se há blocos bloqueando diretamente na frente
+        BlockPos forward = currentPos.relative(this.getDirection());
+        if (!this.level().isEmptyBlock(forward) && isBlockingPath(forward)) {
+            return true;
+        }
+
+        return false;
     }
 
     private void applySpawnGear() {
@@ -116,43 +162,88 @@ public class WarpedMiner extends ZombifiedPiglin {
         this.targetBlockPos = target;
     }
 
+    // Método auxiliar para obter direção para o alvo
+    private Direction getDirectionToTarget() {
+        if (this.targetBlockPos == null) return null;
+
+        BlockPos currentPos = this.blockPosition();
+        BlockPos delta = this.targetBlockPos.subtract(currentPos);
+
+        // Obter a direção principal baseada no maior delta absoluto
+        int absX = Math.abs(delta.getX());
+        int absZ = Math.abs(delta.getZ());
+
+        if (absX > absZ) {
+            return delta.getX() > 0 ? Direction.EAST : Direction.WEST;
+        } else {
+            return delta.getZ() > 0 ? Direction.SOUTH : Direction.NORTH;
+        }
+    }
+
     private void breakBlocksInPath() {
         if (this.targetBlockPos == null) return;
-        if (this.getTarget() != null) return; // Não quebrar blocos quando em combate
+        if (this.getTarget() != null) return;
+
+        // Se já está quebrando um bloco, continua o progresso
+        if (currentBreakingPos != null) {
+            continueBreakingBlock();
+            return;
+        }
 
         BlockPos currentPos = this.blockPosition();
         Set<BlockPos> blocksToCheck = new HashSet<>();
 
-        // Focar APENAS em blocos que estão diretamente na frente
+        // Estratégia mais focada - apenas blocos que realmente bloqueiam
         BlockPos forward = currentPos.relative(this.getDirection());
-        blocksToCheck.add(forward);
-        blocksToCheck.add(forward.above()); // Para blocos que precisam pular
 
-        // Verificar também o bloco atual se estiver dentro de um bloco (raro)
-        blocksToCheck.add(currentPos.above());
+        // Apenas blocos que realmente bloqueiam o movimento
+        blocksToCheck.add(forward); // Bloco diretamente na frente
+        blocksToCheck.add(forward.above()); // Bloco acima na frente (para saltar)
 
-        // Ordenar por prioridade: primeiro blocos diretamente na frente, depois outros
-        List<BlockPos> prioritizedBlocks = new ArrayList<>(blocksToCheck);
+        // Blocos na direção do alvo apenas se diferente da direção atual
+        Direction toTargetDirection = getDirectionToTarget();
+        if (toTargetDirection != null && toTargetDirection != this.getDirection()) {
+            BlockPos targetForward = currentPos.relative(toTargetDirection);
+            blocksToCheck.add(targetForward);
+        }
 
-        // Ordenar por proximidade com a linha para o alvo
-        prioritizedBlocks.sort((pos1, pos2) -> {
-            boolean isForward1 = pos1.equals(forward) || pos1.equals(forward.above());
-            boolean isForward2 = pos2.equals(forward) || pos2.equals(forward.above());
+        // Bloco acima do mob apenas se estiver dentro dele
+        if (!this.level().isEmptyBlock(currentPos.above())) {
+            blocksToCheck.add(currentPos.above());
+        }
 
-            if (isForward1 && !isForward2) return -1;
-            if (!isForward1 && isForward2) return 1;
+        // DEBUG: Mostrar blocos sendo verificados
+        if (this.tickCount % 100 == 0) {
+            System.out.println("Warped Miner checking " + blocksToCheck.size() + " blocks for breaking at " + currentPos);
+        }
 
-            double dist1 = isInDirectPathToTarget(pos1) ? 0 : 1;
-            double dist2 = isInDirectPathToTarget(pos2) ? 0 : 1;
-            return Double.compare(dist1, dist2);
-        });
+        // Lógica de prioridade
+        List<BlockPos> easyBlocks = new ArrayList<>();
+        List<BlockPos> hardBlocks = new ArrayList<>();
 
-        for (BlockPos pos : prioritizedBlocks) {
+        for (BlockPos pos : blocksToCheck) {
             if (canBreakBlock(pos) && isBlockingPath(pos)) {
-                breakBlock(pos);
-                // Quebrar apenas um bloco por vez
-                break;
+                BlockState blockState = this.level().getBlockState(pos);
+                if (isHardBlock(blockState.getBlock())) {
+                    hardBlocks.add(pos);
+                } else {
+                    easyBlocks.add(pos);
+                }
             }
+        }
+
+        // Primeiro tenta quebrar blocos fáceis
+        for (BlockPos pos : easyBlocks) {
+            System.out.println("Breaking easy block at: " + pos);
+            breakBlock(pos);
+            return;
+        }
+
+        // Se só há blocos duros, começa a quebrar um
+        if (!hardBlocks.isEmpty()) {
+            BlockPos targetPos = hardBlocks.get(0);
+            System.out.println("Starting to break hard block at: " + targetPos);
+            startBreakingBlock(targetPos);
         }
     }
 
@@ -174,8 +265,8 @@ public class WarpedMiner extends ZombifiedPiglin {
             return false;
         }
 
-        // Verificar dureza máxima
-        if (blockState.getDestroySpeed(this.level(), pos) > MAX_BREAK_HARDNESS) {
+        // Verificar dureza máxima (aumentada para permitir obsidiana)
+        if (blockState.getDestroySpeed(this.level(), pos) > 50.0D) {
             return false;
         }
 
@@ -186,7 +277,8 @@ public class WarpedMiner extends ZombifiedPiglin {
                 blockState.is(BlockTags.MINEABLE_WITH_HOE) ||
                 blockState.is(BlockTags.LEAVES) ||
                 blockState.is(BlockTags.WOOL) ||
-                blockState.is(BlockTags.ICE);
+                blockState.is(BlockTags.ICE) ||
+                isHardBlock(block);
     }
 
     private boolean isBlockingPath(BlockPos pos) {
@@ -194,25 +286,42 @@ public class WarpedMiner extends ZombifiedPiglin {
 
         BlockPos currentPos = this.blockPosition();
 
-        // Verificar se o bloco está diretamente no caminho para o alvo
+        // NUNCA quebrar blocos abaixo do mob (chão)
         if (pos.getY() < currentPos.getY()) {
             return false;
         }
 
-        BlockPos forwardPos = currentPos.relative(this.getDirection());
-        if (pos.equals(forwardPos)) {
-            return true;
+        // Blocos diretamente na frente
+        BlockPos forward = currentPos.relative(this.getDirection());
+        if (pos.equals(forward)) {
+            return true; // Bloco diretamente na frente - SEMPRE quebrar
         }
 
-        if (pos.equals(forwardPos.above())) {
-            return true;
-        }
-        if (isInDirectPathToTarget(pos)) {
-            return true;
+        // Bloco acima do que está na frente (para pular/escadas)
+        if (pos.equals(forward.above())) {
+            // Só quebrar se estiver bloqueando o movimento vertical
+            return !this.level().isEmptyBlock(forward) ||
+                    !this.level().isEmptyBlock(currentPos.above());
         }
 
-        return false;
+        // Blocos na direção do alvo
+        Direction toTargetDirection = getDirectionToTarget();
+        if (toTargetDirection != null) {
+            BlockPos targetForward = currentPos.relative(toTargetDirection);
+            if (pos.equals(targetForward)) {
+                return true; // Bloco na direção do alvo
+            }
+        }
 
+        // Bloco acima do mob (se estiver dentro de um bloco)
+        if (pos.equals(currentPos.above())) {
+            return !this.level().isEmptyBlock(currentPos.above());
+        }
+
+        // Verificar se está no caminho direto apenas para blocos na frente
+        return isInDirectPathToTarget(pos) &&
+                pos.getY() >= currentPos.getY() &&
+                pos.getY() <= currentPos.getY() + 1;
     }
 
     private boolean isInDirectPathToTarget(BlockPos pos) {
@@ -269,36 +378,102 @@ public class WarpedMiner extends ZombifiedPiglin {
         return Math.sqrt(dx * dx + dz * dz);
     }
 
-    private boolean isInLineOfSight(BlockPos start, BlockPos end, BlockPos check) {
-        // Verificação simplificada se o bloco está na linha entre start e end
-        double distToLine = distanceToLine(start, end, check);
-        return distToLine < 1.5D; // Margem de 1.5 blocos
+    // Métodos do sistema de quebra progressiva
+    private void startBreakingBlock(BlockPos pos) {
+        this.currentBreakingPos = pos;
+        this.breakingProgress = 0;
+
+        BlockState blockState = this.level().getBlockState(pos);
+        System.out.println("Starting to break " + blockState.getBlock().getName().getString() + " at " + pos);
+
+        // Efeito visual inicial
+        this.level().playSound(null, pos, blockState.getSoundType().getHitSound(),
+                this.getSoundSource(), 1.0F, 1.0F);
     }
 
-    private double distanceToLine(BlockPos lineStart, BlockPos lineEnd, BlockPos point) {
-        // Cálculo simplificado da distância de um ponto até uma linha
-        double lineLength = Math.sqrt(lineStart.distSqr(lineEnd));
-        if (lineLength == 0) return Math.sqrt(lineStart.distSqr(point));
+    private void continueBreakingBlock() {
+        if (currentBreakingPos == null) return;
 
-        double t = Math.max(0, Math.min(1,
-                ((point.getX() - lineStart.getX()) * (lineEnd.getX() - lineStart.getX()) +
-                        (point.getY() - lineStart.getY()) * (lineEnd.getY() - lineStart.getY()) +
-                        (point.getZ() - lineStart.getZ()) * (lineEnd.getZ() - lineStart.getZ())) /
-                        (lineLength * lineLength)));
+        BlockState blockState = this.level().getBlockState(currentBreakingPos);
+        Block block = blockState.getBlock();
 
-        BlockPos projection = new BlockPos(
-                (int)(lineStart.getX() + t * (lineEnd.getX() - lineStart.getX())),
-                (int)(lineStart.getY() + t * (lineEnd.getY() - lineStart.getY())),
-                (int)(lineStart.getZ() + t * (lineEnd.getZ() - lineStart.getZ()))
-        );
+        // Verificar se o bloco ainda existe
+        if (!canBreakBlock(currentBreakingPos) || !isBlockingPath(currentBreakingPos)) {
+            resetBreaking();
+            return;
+        }
 
-        return Math.sqrt(point.distSqr(projection));
+        breakingProgress++;
+
+        // Efeitos visuais durante a quebra
+        if (breakingProgress % 20 == 0) { // A cada segundo
+            // Som de quebra
+            this.level().playSound(null, currentBreakingPos, blockState.getSoundType().getHitSound(),
+                    this.getSoundSource(), 0.8F, 0.9F + this.random.nextFloat() * 0.2F);
+
+            // Partículas de quebra (apenas no lado do servidor)
+            if (this.level() instanceof ServerLevel serverLevel) {
+                // Usando partículas simples que funcionam com certeza
+                serverLevel.sendParticles(
+                        ParticleTypes.CRIT,
+                        currentBreakingPos.getX() + 0.5,
+                        currentBreakingPos.getY() + 0.5,
+                        currentBreakingPos.getZ() + 0.5,
+                        8, // quantidade
+                        0.3, 0.3, 0.3, // spread
+                        0.1 // velocidade extra
+                );
+            }
+
+            System.out.println("Breaking progress: " + breakingProgress + "/" + getBreakTime(block));
+        }
+
+        // Verificar se terminou de quebrar
+        if (breakingProgress >= getBreakTime(block)) {
+            finishBreakingBlock();
+        }
+    }
+
+    private void finishBreakingBlock() {
+        if (currentBreakingPos != null) {
+            System.out.println("Finished breaking block at " + currentBreakingPos);
+            breakBlock(currentBreakingPos);
+            resetBreaking();
+        }
+    }
+
+    private void resetBreaking() {
+        this.currentBreakingPos = null;
+        this.breakingProgress = 0;
+    }
+
+    private int getBreakTime(Block block) {
+        return BREAK_TIMES.getOrDefault(block, 40); // Default 2 segundos para blocos normais
+    }
+
+    private boolean isHardBlock(Block block) {
+        return BREAK_TIMES.containsKey(block);
     }
 
     private void breakBlock(BlockPos pos) {
         if (!this.level().isClientSide() && this.level() instanceof ServerLevel serverLevel) {
             BlockState blockState = this.level().getBlockState(pos);
             Block block = blockState.getBlock();
+
+            // Efeitos melhorados
+            this.level().playSound(null, pos, blockState.getSoundType().getBreakSound(),
+                    this.getSoundSource(), 1.0F, 1.0F);
+
+            // Partículas de quebra final
+            serverLevel.sendParticles(
+                    ParticleTypes.EXPLOSION,
+                    pos.getX() + 0.5,
+                    pos.getY() + 0.5,
+                    pos.getZ() + 0.5,
+                    12, // quantidade
+                    0.5, 0.5, 0.5, // spread
+                    0.2 // velocidade extra
+            );
 
             // Dropar os itens do bloco
             Block.getDrops(blockState, serverLevel, pos, null, this, ItemStack.EMPTY)
@@ -308,15 +483,14 @@ public class WarpedMiner extends ZombifiedPiglin {
 
             // Quebrar o bloco
             this.level().destroyBlock(pos, false, this);
-
-            // Efeitos de som
-            this.level().playSound(null, pos, blockState.getSoundType().getBreakSound(),
-                    this.getSoundSource(), 1.0F, 1.0F);
         }
     }
 
     // Goal para mover-se em direção ao bloco alvo
     private class MoveToTargetBlockGoal extends Goal {
+        private int stuckTimer = 0;
+        private BlockPos lastPos = null;
+
         public MoveToTargetBlockGoal() {
             this.setFlags(EnumSet.of(Goal.Flag.MOVE));
         }
@@ -335,18 +509,47 @@ public class WarpedMiner extends ZombifiedPiglin {
                             WarpedMiner.this.targetBlockPos.getX() + 0.5,
                             WarpedMiner.this.targetBlockPos.getY(),
                             WarpedMiner.this.targetBlockPos.getZ() + 0.5
-                    ) > 4.0D; // Parar quando estiver a 2 blocos de distância
+                    ) > 2.0D; // Reduzir para 1 bloco de distância
+        }
+
+        @Override
+        public void start() {
+            this.stuckTimer = 0;
+            this.lastPos = WarpedMiner.this.blockPosition();
         }
 
         @Override
         public void tick() {
             if (WarpedMiner.this.targetBlockPos != null) {
+                BlockPos currentPos = WarpedMiner.this.blockPosition();
+
+                // Verificar se está preso
+                if (lastPos != null && currentPos.distSqr(lastPos) < 1.0) {
+                    stuckTimer++;
+                } else {
+                    stuckTimer = 0;
+                }
+                lastPos = currentPos;
+
+                // Se está preso por mais de 3 segundos, tentar quebrar mais agressivamente
+                if (stuckTimer > 60) {
+                    System.out.println("Warped Miner stuck at " + currentPos + ", forcing block breaking");
+                    WarpedMiner.this.breakBlocksInPath();
+                    stuckTimer = 0;
+                }
+
+                // Sempre tentar mover para o alvo
                 WarpedMiner.this.getNavigation().moveTo(
                         WarpedMiner.this.targetBlockPos.getX() + 0.5,
                         WarpedMiner.this.targetBlockPos.getY(),
                         WarpedMiner.this.targetBlockPos.getZ() + 0.5,
                         1.0D
                 );
+
+                // Forçar quebra de blocos se não está se movendo bem
+                if (!WarpedMiner.this.getNavigation().isDone() && WarpedMiner.this.random.nextFloat() < 0.1F) {
+                    WarpedMiner.this.breakBlocksInPath();
+                }
             }
         }
     }
@@ -387,6 +590,12 @@ public class WarpedMiner extends ZombifiedPiglin {
         super.addAdditionalSaveData(compound);
         compound.putInt("BreakTimer", breakTimer);
         compound.putBoolean("HasSpawnedGear", hasSpawnedGear);
+        compound.putInt("BreakingProgress", breakingProgress);
+        if (currentBreakingPos != null) {
+            compound.putInt("BreakingX", currentBreakingPos.getX());
+            compound.putInt("BreakingY", currentBreakingPos.getY());
+            compound.putInt("BreakingZ", currentBreakingPos.getZ());
+        }
         if (targetBlockPos != null) {
             compound.putInt("TargetX", targetBlockPos.getX());
             compound.putInt("TargetY", targetBlockPos.getY());
@@ -402,6 +611,16 @@ public class WarpedMiner extends ZombifiedPiglin {
         }
         if (compound.contains("HasSpawnedGear")) {
             hasSpawnedGear = compound.getBoolean("HasSpawnedGear");
+        }
+        if (compound.contains("BreakingProgress")) {
+            breakingProgress = compound.getInt("BreakingProgress");
+        }
+        if (compound.contains("BreakingX") && compound.contains("BreakingY") && compound.contains("BreakingZ")) {
+            currentBreakingPos = new BlockPos(
+                    compound.getInt("BreakingX"),
+                    compound.getInt("BreakingY"),
+                    compound.getInt("BreakingZ")
+            );
         }
         if (compound.contains("TargetX") && compound.contains("TargetY") && compound.contains("TargetZ")) {
             targetBlockPos = new BlockPos(
