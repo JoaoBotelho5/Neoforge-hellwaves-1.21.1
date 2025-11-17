@@ -56,7 +56,7 @@ public class ActivatorBlock extends Block implements EntityBlock {
         // Remove dead mobs
         blockEntity.activeMobs.removeIf(mob -> !mob.isAlive() || mob.isRemoved());
         if (!blockEntity.activeMobs.isEmpty()) {
-            final double ACTIVATION_RADIUS = 2.0; // VALOR X AND Y
+            final double ACTIVATION_RADIUS = 1.5;// VALOR X AND Y
             final double DOUBLE_ACTIVATION_RADIUS_SQR = ACTIVATION_RADIUS * ACTIVATION_RADIUS;
 
             for (Mob mob : blockEntity.activeMobs) {
