@@ -22,5 +22,10 @@ public class HWClientSetup {
         event.registerEntityRenderer(HWDeferredRegister.WARPED_MINER.get(),
                 context -> new WarpedMinerRenderer(context)
         );
+
+        // ADICIONE ESTA LINHA PARA O ZOMBIE GUARDIAN
+        event.registerEntityRenderer(HWDeferredRegister.ZOMBIE_GUARDIAN.get(),
+                context -> new ZombieRenderer(context) // Usa o mesmo renderer de zombie
+        );
     }
 }
