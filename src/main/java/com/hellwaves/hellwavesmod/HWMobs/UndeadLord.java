@@ -59,6 +59,12 @@ public class UndeadLord extends Zombie {
         return SCALE;
     }
 
+    // Override para prevenir queima no sol
+    @Override
+    protected boolean isSunSensitive() {
+        return false;
+    }
+
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));

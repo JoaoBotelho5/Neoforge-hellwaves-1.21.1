@@ -5,6 +5,7 @@ import com.hellwaves.hellwavesmod.Blocks.ModBlockEntities;
 import com.hellwaves.hellwavesmod.equipment.EquipmentConfig;
 import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
 import com.hellwaves.hellwavesmod.regivents.HWEvents;
+import com.hellwaves.hellwavesmod.regivents.ZombieGuardianEvents;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
@@ -29,6 +30,8 @@ public class HellwavesMod {
         HWDeferredRegister.registerAttributes(modBus);
 
         NeoForge.EVENT_BUS.register(new HWEvents());
+
+        NeoForge.EVENT_BUS.register(new ZombieGuardianEvents());
 
         // new Wrapper(modBus);
 
