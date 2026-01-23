@@ -17,6 +17,7 @@ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.animal.SnowGolem;
+import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.monster.*;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.npc.Villager;
@@ -169,7 +170,7 @@ public class ZombieGuardian extends Zombie {
 
         // Lista de mobs hostis que devem ser atacados
         if (mob instanceof Monster) {
-            if (mob instanceof ZombieGuardian || mob instanceof EnderMan) {
+            if (mob instanceof ZombieGuardian) {
                 return false;
             }
             return true;
@@ -295,14 +296,20 @@ public class ZombieGuardian extends Zombie {
     // Override para prevenir targeting de mobs amigáveis
     @Override
     public boolean canAttack(LivingEntity target) {
-        if (target instanceof Player || target instanceof IronGolem ||
-                target instanceof SnowGolem || target instanceof Villager ||
-                target instanceof ZombieGuardian) {
-            return false;
-        }
+        if (target == null) return false;
 
-        if (target instanceof EnderMan) {
-            return false;
+        // Verificar se é DEFESA (foi atacado primeiro por este mob)
+        boolean isDefending = this.getLastHurtByMob() == target;
+
+        // Lista de mobs amigáveis que só atacamos em DEFESA
+        if (target instanceof Player ||
+                target instanceof IronGolem ||
+                target instanceof SnowGolem ||
+                target instanceof Wolf ||
+                target instanceof Villager ||
+                target instanceof ZombieGuardian) {
+
+            return isDefending; // Só ataca se for em defesa
         }
 
         return isHostileMob(target);
