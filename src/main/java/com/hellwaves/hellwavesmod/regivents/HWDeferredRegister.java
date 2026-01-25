@@ -99,7 +99,6 @@ public class HWDeferredRegister {
     );
 
 
-
     public static void registerAttributes(IEventBus modEventBus) {
         modEventBus.addListener(HWDeferredRegister::onEntityAttributeCreation);
     }

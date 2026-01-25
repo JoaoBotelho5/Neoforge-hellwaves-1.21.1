@@ -1,5 +1,7 @@
 package com.hellwaves.hellwavesmod.HWMobs;
 
+import com.hellwaves.hellwavesmod.inventory.GuardianInventory;
+import com.hellwaves.hellwavesmod.inventory.GuardianInventoryMenu;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -22,6 +24,7 @@ import net.minecraft.world.entity.monster.*;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 
@@ -39,12 +42,20 @@ public class ZombieGuardian extends Zombie {
     private GuardState currentState = GuardState.WANDER_AREA;
     private Player followingPlayer = null;
     private int stateChangeCooldown = 0;
+    private GuardianInventory guardianInventory;
 
     public ZombieGuardian(EntityType<? extends Zombie> entityType, Level level) {
         super(entityType, level);
         this.setCustomName(Component.literal("§2Zombie Guardian§r"));
         this.setCustomNameVisible(true);
         this.xpReward = 10;
+    }
+
+    public GuardianInventory getGuardianInventory() {
+        if (guardianInventory == null) {
+            guardianInventory = new GuardianInventory(this);
+        }
+        return guardianInventory;
     }
 
     @Override
@@ -119,6 +130,22 @@ public class ZombieGuardian extends Zombie {
 
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
+        // Shift + Right Click para abrir inventário
+        if (player.isShiftKeyDown() && hand == InteractionHand.MAIN_HAND) {
+            if (!this.level().isClientSide()) {
+                player.openMenu(new net.minecraft.world.SimpleMenuProvider(
+                        (containerId, playerInventory, playerEntity) ->
+                                new GuardianInventoryMenu(containerId, playerInventory, this),
+                        this.getDisplayName()
+                ), buf -> {
+                    // Enviar ID do guardian para o cliente
+                    buf.writeInt(this.getId());
+                });
+            }
+            return InteractionResult.sidedSuccess(this.level().isClientSide());
+        }
+
+        // Código existente para mudar estado
         if (!this.level().isClientSide() && stateChangeCooldown <= 0) {
             switch (currentState) {
                 case STAY -> setState(GuardState.FOLLOW);
@@ -130,6 +157,7 @@ public class ZombieGuardian extends Zombie {
             player.displayClientMessage(Component.literal("Zombie Guardian mode: " + getStateName()), true);
             return InteractionResult.SUCCESS;
         }
+
         return InteractionResult.PASS;
     }
 
