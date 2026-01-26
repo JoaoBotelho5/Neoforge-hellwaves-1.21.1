@@ -24,14 +24,18 @@ import net.minecraft.world.entity.monster.*;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Arrow;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 
 import javax.annotation.Nullable;
 import java.util.EnumSet;
 
-public class ZombieGuardian extends Zombie {
+public class ZombieGuardian extends Zombie implements RangedAttackMob {
     // Estados do mob
     public enum GuardState {
         STAY,       // Fica parado no lugar
@@ -62,12 +66,13 @@ public class ZombieGuardian extends Zombie {
     protected void registerGoals() {
         // Goals de movimento
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new GuardianMeleeAttackGoal());
-        this.goalSelector.addGoal(2, new GuardianFollowGoal());
-        this.goalSelector.addGoal(3, new GuardianStayGoal());
-        this.goalSelector.addGoal(4, new GuardianWanderGoal());
-        this.goalSelector.addGoal(5, new LookAtPlayerGoal(this, Player.class, 8.0F));
-        this.goalSelector.addGoal(6, new RandomLookAroundGoal(this));
+        this.goalSelector.addGoal(1, new GuardianRangedBowAttackGoal(this, 1.0D, 20, 15.0F));
+        this.goalSelector.addGoal(2, new GuardianMeleeAttackGoal());
+        this.goalSelector.addGoal(3, new GuardianFollowGoal());
+        this.goalSelector.addGoal(4, new GuardianStayGoal());
+        this.goalSelector.addGoal(5, new GuardianWanderGoal());
+        this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0F));
+        this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
 
         // Targeting - Ataque a mobs hostis
         this.targetSelector.addGoal(0, new GuardianHurtByTargetGoal());
@@ -196,6 +201,10 @@ public class ZombieGuardian extends Zombie {
 
         Mob mob = (Mob) entity;
 
+        if (mob instanceof Creeper) {
+            return false;
+        }
+
         // Lista de mobs hostis que devem ser atacados
         if (mob instanceof Monster) {
             if (mob instanceof ZombieGuardian) {
@@ -204,14 +213,118 @@ public class ZombieGuardian extends Zombie {
             return true;
         }
 
-        if (mob instanceof ZombifiedPiglin || mob instanceof AbstractPiglin) {
+        if (mob instanceof ZombifiedPiglin || mob instanceof AbstractPiglin || mob instanceof Slime || mob instanceof MagmaCube) {
             return true;
         }
 
         return false;
     }
 
-    // Goal de ataque
+    // Verificar se está equipado com arco
+    public boolean isHoldingBow() {
+        ItemStack mainhand = this.getItemBySlot(EquipmentSlot.MAINHAND);
+        return mainhand.getItem() instanceof BowItem;
+    }
+
+    // Implementação do RangedAttackMob para atirar flechas
+    @Override
+    public void performRangedAttack(LivingEntity target, float velocity) {
+        ItemStack mainhand = this.getItemBySlot(EquipmentSlot.MAINHAND);
+        ItemStack offhand = this.getItemBySlot(EquipmentSlot.OFFHAND);
+
+        // Criar flecha
+        AbstractArrow arrow = createArrow(mainhand, offhand);
+
+        // Calcular trajetória
+        double distanceX = target.getX() - this.getX();
+        double distanceY = target.getY(0.3333333333333333D) - arrow.getY();
+        double distanceZ = target.getZ() - this.getZ();
+        double horizontalDistance = Math.sqrt(distanceX * distanceX + distanceZ * distanceZ);
+
+        arrow.shoot(distanceX, distanceY + horizontalDistance * 0.20000000298023224D, distanceZ, 1.6F, 14.0F);
+
+        // Som de disparo
+        this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
+
+        // Adicionar flecha ao mundo
+        this.level().addFreshEntity(arrow);
+    }
+
+    private AbstractArrow createArrow(ItemStack bowStack, ItemStack offhandStack) {
+        ItemStack arrowStack = new ItemStack(Items.ARROW);
+
+        // Se tem flecha especial na offhand, usar ela como base
+        if (offhandStack.getItem() instanceof ArrowItem && !offhandStack.isEmpty()) {
+            arrowStack = offhandStack.copy();
+            arrowStack.setCount(1);
+        }
+
+        // Criar flecha
+        Arrow arrow = new Arrow(this.level(), this, arrowStack, null);
+        arrow.setBaseDamage(2.0D);
+
+        // Aplicar enchantments do arco
+        try {
+            var enchantmentRegistry = this.level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
+
+            // Power enchantment (aumenta dano)
+            int powerLevel = bowStack.getEnchantmentLevel(enchantmentRegistry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.POWER));
+            if (powerLevel > 0) {
+                arrow.setBaseDamage(arrow.getBaseDamage() + (double)powerLevel * 0.5D + 0.5D);
+            }
+
+            // Punch enchantment (knockback) - aplicado via NBT
+            int punchLevel = bowStack.getEnchantmentLevel(enchantmentRegistry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.PUNCH));
+            if (punchLevel > 0) {
+                // Knockback é armazenado como byte no NBT da Arrow
+                CompoundTag arrowTag = new CompoundTag();
+                arrowTag.putByte("knockback", (byte) punchLevel);
+                arrow.load(arrowTag);
+            }
+
+            // Flame enchantment (fogo)
+            if (bowStack.getEnchantmentLevel(enchantmentRegistry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.FLAME)) > 0) {
+                arrow.igniteForSeconds(100);
+            }
+        } catch (Exception e) {
+            // Fallback se houver erro com enchantments
+            System.err.println("Error applying bow enchantments: " + e.getMessage());
+        }
+
+        arrow.setOwner(this);
+        arrow.setCritArrow(true);
+
+        return arrow;
+    }
+
+    // Goal de ataque à distância com arco
+    private static class GuardianRangedBowAttackGoal extends RangedBowAttackGoal<ZombieGuardian> {
+        private final ZombieGuardian guardian;
+
+        public GuardianRangedBowAttackGoal(ZombieGuardian guardian, double speedModifier, int attackInterval, float attackRadius) {
+            super(guardian, speedModifier, attackInterval, attackRadius);
+            this.guardian = guardian;
+        }
+
+        @Override
+        public boolean canUse() {
+            // Só usar arco se tiver arco equipado e tiver target hostil
+            return guardian.isHoldingBow() &&
+                    guardian.getTarget() != null &&
+                    guardian.isHostileMob(guardian.getTarget()) &&
+                    super.canUse();
+        }
+
+        @Override
+        public boolean canContinueToUse() {
+            return guardian.isHoldingBow() &&
+                    guardian.getTarget() != null &&
+                    guardian.isHostileMob(guardian.getTarget()) &&
+                    super.canContinueToUse();
+        }
+    }
+
+    // Goal de ataque melee (só quando não tem arco)
     private class GuardianMeleeAttackGoal extends MeleeAttackGoal {
         public GuardianMeleeAttackGoal() {
             super(ZombieGuardian.this, 1.4D, true);
@@ -219,14 +332,21 @@ public class ZombieGuardian extends Zombie {
 
         @Override
         public boolean canUse() {
+            // Só usar melee se NÃO tiver arco equipado
             LivingEntity target = ZombieGuardian.this.getTarget();
-            return target != null && isHostileMob(target) && super.canUse();
+            return !ZombieGuardian.this.isHoldingBow() &&
+                    target != null &&
+                    isHostileMob(target) &&
+                    super.canUse();
         }
 
         @Override
         public boolean canContinueToUse() {
             LivingEntity target = ZombieGuardian.this.getTarget();
-            return target != null && isHostileMob(target) && super.canContinueToUse();
+            return !ZombieGuardian.this.isHoldingBow() &&
+                    target != null &&
+                    isHostileMob(target) &&
+                    super.canContinueToUse();
         }
     }
 
