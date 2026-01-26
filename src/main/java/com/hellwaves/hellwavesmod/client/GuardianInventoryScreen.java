@@ -132,7 +132,7 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
             double weaponDamage = getWeaponDamage(mainhand);
 
             if (weaponDamage > 0) {
-                String weaponText = String.format("+%.1f Weapon", weaponDamage);
+                String weaponText = String.format("+%.1f Damage", weaponDamage);
                 guiGraphics.drawString(this.font, weaponText, x + 2, currentY, 0x606060, false);
                 currentY += lineHeight - 1;
             }
@@ -156,7 +156,7 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
                     getToughnessValue(guardian.getItemBySlot(EquipmentSlot.FEET));
 
             if (totalToughness > 0) {
-                String toughGearText = String.format("+%.1f Toughness", totalToughness);
+                String toughGearText = String.format("+%.1f Tough", totalToughness);
                 guiGraphics.drawString(this.font, toughGearText, x + 2, currentY, 0x606060, false);
             }
         }
