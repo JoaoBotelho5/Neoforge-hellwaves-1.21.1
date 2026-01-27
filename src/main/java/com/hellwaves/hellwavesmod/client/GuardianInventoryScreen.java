@@ -243,18 +243,29 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
 
         y += 10;
 
-        // TOUGH centered on bottom row
-        if (totalToughness > 0) {
-            String toughText = String.format("TOUGH: +%.1f", totalToughness);
-            int textWidth = this.font.width(toughText);
-            int centerX = x + (spacing + 30) / 2 - textWidth / 2;
-            guiGraphics.drawString(this.font, toughText, centerX + 20, y, 0x606060, false);
-        } else {
-            String toughText = "TOUGH: +0.0";
-            int textWidth = this.font.width(toughText);
-            int centerX = x + (spacing + 30) / 2 - textWidth / 2;
-            guiGraphics.drawString(this.font, toughText, centerX + 20, y, 0x808080, false);
-        }
+        // TOUGH centered on bottom row - FIXED calculation
+        String toughText = totalToughness > 0 ?
+                String.format("TOUGH: +%.1f", totalToughness) :
+                "TOUGH: +0.0";
+
+        // ARM starts at x + spacing
+        // To center TOUGH, we need the midpoint between:
+        // - DMG starting position (x)
+        // - ARM ending position (x + spacing + armTextWidth)
+        String armDisplayText = totalArmorFromGear > 0 ?
+                String.format("ARM: +%.1f", totalArmorFromGear) :
+                "ARM: +0.0";
+        int armTextWidth = this.font.width(armDisplayText);
+
+        // The total visual span goes from x to (x + spacing + armTextWidth)
+        int totalSpan = spacing + armTextWidth;
+
+        // Center TOUGH within this span
+        int toughTextWidth = this.font.width(toughText);
+        int toughX = x + (totalSpan - toughTextWidth) / 2;
+
+        guiGraphics.drawString(this.font, toughText, toughX, y,
+                totalToughness > 0 ? 0x606060 : 0x808080, false);
     }
 
     // FIXED: Add method to calculate upgrade cost locally from level

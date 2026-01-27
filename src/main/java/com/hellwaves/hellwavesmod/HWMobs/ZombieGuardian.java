@@ -60,7 +60,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
 
     // AOE Ability (Level 5)
     private static final int AOE_COOLDOWN = 150; // 7.5 segundos (20 ticks * 7.5)
-    private static final float AOE_RADIUS = 1.5F;
+    private static final float AOE_RADIUS = 1.0F; // CHANGED: 1 block range instead of 1.5
     private static final float AOE_DAMAGE = 3.0F;
     private int aoeCooldownTimer = 0;
     private boolean wasInCombat = false;
@@ -69,7 +69,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
         super(entityType, level);
         this.setCustomName(Component.literal("§2Zombie Guardian§r"));
         this.setCustomNameVisible(true);
-        this.xpReward = 10;
+        this.xpReward = 50;
     }
 
     public GuardianInventory getGuardianInventory() {
@@ -96,15 +96,6 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
                 // Visual feedback
                 this.level().playSound(null, this.blockPosition(),
                         SoundEvents.PLAYER_LEVELUP, this.getSoundSource(), 1.0F, 1.0F);
-
-                // Particle effect
-                if (this.level() instanceof ServerLevel serverLevel) {
-                    serverLevel.sendParticles(
-                            net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER,
-                            this.getX(), this.getY() + 1.0D, this.getZ(),
-                            20, 0.5D, 0.5D, 0.5D, 0.1D
-                    );
-                }
             }
         }
     }
@@ -192,7 +183,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
                 maxHealthAttr.setBaseValue(currentMax + 10.0D);
 
                 // Set health to 30 (new current HP after level 3)
-                this.setHealth(30.0F);
+                this.setHealth(40.0F);
             }
         }
 
@@ -232,7 +223,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
 
     public static AttributeSupplier.Builder createAttributes() {
         return Zombie.createAttributes()
-                .add(Attributes.MAX_HEALTH, 20.0D) // Changed from 50 to 20
+                .add(Attributes.MAX_HEALTH, 30.0D) // Changed from 50 to 20
                 .add(Attributes.ATTACK_DAMAGE, 5.0D)
                 .add(Attributes.ARMOR, 4.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.18D)
@@ -373,7 +364,16 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
 
         List<LivingEntity> entities = this.level().getEntitiesOfClass(
                 LivingEntity.class, area,
-                entity -> entity != this && entity.isAlive() && isHostileMob(entity)
+                entity -> entity != this &&
+                        entity.isAlive() &&
+                        isHostileMob(entity) &&
+                        // FIXED: Explicitly exclude friendly mobs
+                        !(entity instanceof Player) &&
+                        !(entity instanceof IronGolem) &&
+                        !(entity instanceof SnowGolem) &&
+                        !(entity instanceof Wolf) &&
+                        !(entity instanceof Villager) &&
+                        !(entity instanceof ZombieGuardian)
         );
 
         // Damage all hostile entities
@@ -414,18 +414,6 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
             if (this.getHealth() < this.getMaxHealth()) {
                 this.heal(getRegenAmount());
 
-                // Efeito visual de partículas de cura (opcional)
-                if (this.level() instanceof ServerLevel serverLevel) {
-                    serverLevel.sendParticles(
-                            net.minecraft.core.particles.ParticleTypes.HEART,
-                            this.getX(),
-                            this.getY() + 1.0D,
-                            this.getZ(),
-                            1, // quantidade
-                            0.2D, 0.2D, 0.2D, // spread
-                            0.0D // velocidade
-                    );
-                }
             }
         }
     }
