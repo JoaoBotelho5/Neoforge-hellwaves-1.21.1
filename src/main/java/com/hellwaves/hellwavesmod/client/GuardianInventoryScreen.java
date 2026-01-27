@@ -2,7 +2,10 @@ package com.hellwaves.hellwavesmod.client;
 
 import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
 import com.hellwaves.hellwavesmod.inventory.GuardianInventoryMenu;
+import com.hellwaves.hellwavesmod.packets.Modpackets;
+import com.hellwaves.hellwavesmod.packets.upgradeguardianpacket;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -12,10 +15,12 @@ import net.minecraft.world.item.ItemStack;
 
 public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInventoryMenu> {
 
+    private Button upgradeButton;
+
     public GuardianInventoryScreen(GuardianInventoryMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
-        this.imageWidth = 220;
-        this.imageHeight = 256;
+        this.imageWidth = 256;  // Increased from 220
+        this.imageHeight = 280; // Increased from 256
         this.inventoryLabelY = 10000;
         this.titleLabelY = 10000;
     }
@@ -25,6 +30,34 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
         super.init();
         this.leftPos = (this.width - this.imageWidth) / 2;
         this.topPos = (this.height - this.imageHeight) / 2;
+
+        // Add upgrade button - moved down below cost display
+        int buttonX = this.leftPos + 170;  // Centered under stats
+        int buttonY = this.topPos + 142;   // Moved down from 120
+
+        // FIXED: Use synced level from menu
+        int currentLevel = this.menu.getGuardianLevel();
+        boolean canUpgrade = currentLevel < 5;
+
+        upgradeButton = Button.builder(
+                        Component.literal(canUpgrade ? "Upgrade" : "MAX"),
+                        button -> onUpgradeClicked()
+                )
+                .bounds(buttonX, buttonY, 70, 20)  // Slightly wider
+                .build();
+
+        upgradeButton.active = canUpgrade;
+
+        this.addRenderableWidget(upgradeButton);
+    }
+
+    private void onUpgradeClicked() {
+        ZombieGuardian guardian = this.menu.getGuardian();
+        if (guardian != null && guardian.canUpgrade()) {
+            // Send packet to server
+            Modpackets.sendToServer(new upgradeguardianpacket(guardian.getId()));
+            // Menu will auto-sync the new level through container data
+        }
     }
 
     @Override
@@ -36,9 +69,9 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
         guiGraphics.fill(x, y, x + imageWidth, y + imageHeight, 0xFFC6C6C6);
         drawThickBorder(guiGraphics, x, y, imageWidth, imageHeight, 0xFF8B7355, 2);
 
-        // Seção Guardian Equipment
-        int guardianSectionX = x + 7;
-        int guardianSectionY = y + 17;
+        // Seção Guardian Equipment - recentered
+        int guardianSectionX = x + 20;   // Adjusted
+        int guardianSectionY = y + 25;   // Adjusted
         int guardianSectionWidth = 140;
         int guardianSectionHeight = 95;
 
@@ -56,11 +89,14 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
         guiGraphics.drawString(this.font, guardianTitle, guardianSectionX + 3, guardianSectionY - 10, 0x404040, false);
 
         // Stats do Guardian (posicionados à direita dos slots)
-        drawGuardianStats(guiGraphics, x + 152, guardianSectionY + 5);
+        drawGuardianStats(guiGraphics, x + 170, guardianSectionY + 5);  // Adjusted
 
-        // Seção Player Inventory
-        int playerSectionX = x + 7;
-        int playerSectionY = y + 142;
+        // Draw gear bonus below guardian equipment section
+        drawGearBonus(guiGraphics, guardianSectionX + 5, guardianSectionY + guardianSectionHeight + 5);
+
+        // Seção Player Inventory - recentered
+        int playerSectionX = x + 25;    // Adjusted
+        int playerSectionY = y + 165;   // Adjusted
         int playerSectionWidth = 206;
         int playerSectionHeight = 108;
 
@@ -88,6 +124,7 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
         double attackDamage = this.menu.getGuardianAttackDamage();
         double armorValue = this.menu.getGuardianArmor();
         double armorToughness = this.menu.getGuardianToughness();
+        int currentLevel = this.menu.getGuardianLevel();  // FIXED: Use synced level
 
         if (maxHealth <= 0) {
             guiGraphics.drawString(this.font, "No Data", x, y, 0x808080, false);
@@ -100,6 +137,11 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
         // Título Stats
         guiGraphics.drawString(this.font, "Stats", x, currentY, 0x404040, false);
         currentY += lineHeight + 2;
+
+        // Level do Guardian - FIXED: Use synced level
+        String levelText = String.format("§6Level %d", currentLevel);
+        guiGraphics.drawString(this.font, levelText, x, currentY, 0xFFAA00, false);
+        currentY += lineHeight;
 
         // Health com coração
         String healthText = String.format("♥ %.1f/%.1f", currentHealth, maxHealth);
@@ -121,45 +163,109 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
         guiGraphics.drawString(this.font, toughnessText, x, currentY, 0x404040, false);
         currentY += lineHeight + 3;
 
-        // Gear breakdown
-        ZombieGuardian guardian = this.menu.getGuardian();
-        if (guardian != null) {
-            guiGraphics.drawString(this.font, "Gear", x, currentY, 0x404040, false);
-            currentY += lineHeight + 2;
+        // Upgrade cost - FIXED: Calculate from synced level
+        if (currentLevel < 5) {  // Can upgrade
+            int nextLevel = currentLevel + 1;
+            ItemStack upgradeCost = getUpgradeCostForLevel(currentLevel);  // FIXED: Calculate locally
 
-            // Weapon damage
-            ItemStack mainhand = guardian.getItemBySlot(EquipmentSlot.MAINHAND);
-            double weaponDamage = getWeaponDamage(mainhand);
+            guiGraphics.drawString(this.font, "§7Next Upgrade:", x, currentY, 0x808080, false);
+            currentY += lineHeight;
 
-            if (weaponDamage > 0) {
-                String weaponText = String.format("+%.1f Damage", weaponDamage);
-                guiGraphics.drawString(this.font, weaponText, x + 2, currentY, 0x606060, false);
-                currentY += lineHeight - 1;
+            // Draw upgrade level info - FIXED
+            String levelInfo = String.format("§eLevel %d → %d", currentLevel, nextLevel);
+            guiGraphics.drawString(this.font, levelInfo, x, currentY, 0xFFAA00, false);
+            currentY += lineHeight;
+
+            // Draw cost - FIXED to show actual cost
+            if (!upgradeCost.isEmpty()) {
+                String costText = String.format("§7Cost: %dx", upgradeCost.getCount());
+                guiGraphics.drawString(this.font, costText, x, currentY, 0x606060, false);
+                currentY += lineHeight;
+
+                // Draw item icon
+                guiGraphics.renderItem(upgradeCost, x, currentY);
+
+                // Draw item name next to icon
+                String itemName = upgradeCost.getHoverName().getString();
+                if (itemName.length() > 12) {
+                    itemName = itemName.substring(0, 12) + "...";
+                }
+                guiGraphics.drawString(this.font, itemName, x + 18, currentY + 4, 0x606060, false);
             }
-
-            // Armor from gear
-            double totalArmorFromGear = getArmorValue(guardian.getItemBySlot(EquipmentSlot.HEAD)) +
-                    getArmorValue(guardian.getItemBySlot(EquipmentSlot.CHEST)) +
-                    getArmorValue(guardian.getItemBySlot(EquipmentSlot.LEGS)) +
-                    getArmorValue(guardian.getItemBySlot(EquipmentSlot.FEET));
-
-            if (totalArmorFromGear > 0) {
-                String armorGearText = String.format("+%.1f Armor", totalArmorFromGear);
-                guiGraphics.drawString(this.font, armorGearText, x + 2, currentY, 0x606060, false);
-                currentY += lineHeight - 1;
-            }
-
-            // Toughness from gear
-            double totalToughness = getToughnessValue(guardian.getItemBySlot(EquipmentSlot.HEAD)) +
-                    getToughnessValue(guardian.getItemBySlot(EquipmentSlot.CHEST)) +
-                    getToughnessValue(guardian.getItemBySlot(EquipmentSlot.LEGS)) +
-                    getToughnessValue(guardian.getItemBySlot(EquipmentSlot.FEET));
-
-            if (totalToughness > 0) {
-                String toughGearText = String.format("+%.1f Tough", totalToughness);
-                guiGraphics.drawString(this.font, toughGearText, x + 2, currentY, 0x606060, false);
-            }
+        } else {  // Max level
+            guiGraphics.drawString(this.font, "§6MAX LEVEL", x, currentY, 0xFFAA00, false);
         }
+    }
+
+    // NEW: Separate method for gear bonus display below guardian equipment
+    private void drawGearBonus(GuiGraphics guiGraphics, int x, int y) {
+        ZombieGuardian guardian = this.menu.getGuardian();
+        if (guardian == null) {
+            return;
+        }
+
+        // Title
+        guiGraphics.drawString(this.font, "Gear Bonus:", x, y, 0x404040, false);
+        y += 12;
+
+        // Calculate all bonuses
+        ItemStack mainhand = guardian.getItemBySlot(EquipmentSlot.MAINHAND);
+        double weaponDamage = getWeaponDamage(mainhand);
+
+        double totalArmorFromGear = getArmorValue(guardian.getItemBySlot(EquipmentSlot.HEAD)) +
+                getArmorValue(guardian.getItemBySlot(EquipmentSlot.CHEST)) +
+                getArmorValue(guardian.getItemBySlot(EquipmentSlot.LEGS)) +
+                getArmorValue(guardian.getItemBySlot(EquipmentSlot.FEET));
+
+        double totalToughness = getToughnessValue(guardian.getItemBySlot(EquipmentSlot.HEAD)) +
+                getToughnessValue(guardian.getItemBySlot(EquipmentSlot.CHEST)) +
+                getToughnessValue(guardian.getItemBySlot(EquipmentSlot.LEGS)) +
+                getToughnessValue(guardian.getItemBySlot(EquipmentSlot.FEET));
+
+        // Horizontal layout: DMG and ARM on top row
+        int spacing = 50;
+
+        // DMG (left)
+        if (weaponDamage > 0) {
+            String dmgText = String.format("DMG: +%.1f", weaponDamage);
+            guiGraphics.drawString(this.font, dmgText, x, y, 0x606060, false);
+        } else {
+            guiGraphics.drawString(this.font, "DMG: +0.0", x, y, 0x808080, false);
+        }
+
+        // ARM (right)
+        if (totalArmorFromGear > 0) {
+            String armText = String.format("ARM: +%.1f", totalArmorFromGear);
+            guiGraphics.drawString(this.font, armText, x + spacing, y, 0x606060, false);
+        } else {
+            guiGraphics.drawString(this.font, "ARM: +0.0", x + spacing, y, 0x808080, false);
+        }
+
+        y += 10;
+
+        // TOUGH centered on bottom row
+        if (totalToughness > 0) {
+            String toughText = String.format("TOUGH: +%.1f", totalToughness);
+            int textWidth = this.font.width(toughText);
+            int centerX = x + (spacing + 30) / 2 - textWidth / 2;
+            guiGraphics.drawString(this.font, toughText, centerX + 20, y, 0x606060, false);
+        } else {
+            String toughText = "TOUGH: +0.0";
+            int textWidth = this.font.width(toughText);
+            int centerX = x + (spacing + 30) / 2 - textWidth / 2;
+            guiGraphics.drawString(this.font, toughText, centerX + 20, y, 0x808080, false);
+        }
+    }
+
+    // FIXED: Add method to calculate upgrade cost locally from level
+    private ItemStack getUpgradeCostForLevel(int currentLevel) {
+        return switch (currentLevel) {
+            case 1 -> new ItemStack(net.minecraft.world.item.Items.BOOK, 5);
+            case 2 -> new ItemStack(net.minecraft.world.item.Items.DIAMOND_BLOCK, 1);
+            case 3 -> new ItemStack(net.minecraft.world.item.Items.NETHERITE_SCRAP, 1);
+            case 4 -> new ItemStack(net.minecraft.world.item.Items.NETHER_STAR, 1);
+            default -> ItemStack.EMPTY;
+        };
     }
 
     private double getWeaponDamage(ItemStack stack) {

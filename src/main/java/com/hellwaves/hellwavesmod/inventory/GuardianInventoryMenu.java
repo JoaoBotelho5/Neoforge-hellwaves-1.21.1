@@ -21,8 +21,8 @@ public class GuardianInventoryMenu extends AbstractContainerMenu {
     private final ContainerData data;
 
     // POSIÇÕES DOS SLOTS - CENTRALIZADAS
-    private static final int GUARDIAN_BASE_X = 30;
-    private static final int GUARDIAN_BASE_Y = 30;
+    private static final int GUARDIAN_BASE_X = 43;
+    private static final int GUARDIAN_BASE_Y = 38;
 
     // Armadura (coluna vertical à esquerda)
     private static final int ARMOR_X = GUARDIAN_BASE_X;
@@ -37,8 +37,8 @@ public class GuardianInventoryMenu extends AbstractContainerMenu {
     private static final int GRID_Y = GUARDIAN_BASE_Y;
 
     // Player inventory (centralizado horizontalmente)
-    private static final int PLAYER_BASE_X = 30;
-    private static final int PLAYER_BASE_Y = 153;
+    private static final int PLAYER_BASE_X = 48;
+    private static final int PLAYER_BASE_Y = 178;
     private static final int PLAYER_INV_X = PLAYER_BASE_X;
     private static final int PLAYER_INV_Y = PLAYER_BASE_Y;
     private static final int HOTBAR_X = PLAYER_BASE_X;
@@ -55,7 +55,8 @@ public class GuardianInventoryMenu extends AbstractContainerMenu {
     private static final int DATA_ATTACK_DAMAGE = 2;
     private static final int DATA_ARMOR = 3;
     private static final int DATA_TOUGHNESS = 4;
-    private static final int DATA_COUNT = 5;
+    private static final int DATA_LEVEL = 5;
+    private static final int DATA_COUNT = 6;
 
     // Construtor para MenuType (CLIENTE SEM DADOS)
     public GuardianInventoryMenu(int containerId, Inventory playerInventory) {
@@ -107,6 +108,7 @@ public class GuardianInventoryMenu extends AbstractContainerMenu {
                         case DATA_ATTACK_DAMAGE -> (int) (guardian.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE) * 10);
                         case DATA_ARMOR -> (int) (guardian.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR) * 10);
                         case DATA_TOUGHNESS -> (int) (guardian.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR_TOUGHNESS) * 10);
+                        case DATA_LEVEL -> guardian.getGuardianLevel();
                         default -> 0;
                     };
                 }
@@ -145,6 +147,10 @@ public class GuardianInventoryMenu extends AbstractContainerMenu {
 
     public double getGuardianToughness() {
         return this.data.get(DATA_TOUGHNESS) / 10.0;
+    }
+
+    public int getGuardianLevel() {
+        return this.data.get(DATA_LEVEL);
     }
 
     private void addPlayerSlots(Inventory playerInventory) {
