@@ -57,10 +57,12 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
     // Regeneração natural
     private static final int BASE_REGEN_INTERVAL = 100; // 5 segundos (20 ticks * 5)
     private int regenTimer = 0;
+    private int outOfCombatRegenTimer = 0;
+    private int inCombatRegenTimer = 0;
 
     // AOE Ability (Level 5)
-    private static final int AOE_COOLDOWN = 150; // 7.5 segundos (20 ticks * 7.5)
-    private static final float AOE_RADIUS = 1.0F; // CHANGED: 1 block range instead of 1.5
+    private static final int AOE_COOLDOWN = 200; // 7.5 segundos (20 ticks * 7.5)
+    private static final float AOE_RADIUS = 1.5F; // CHANGED: 1 block range instead of 1.5
     private static final float AOE_DAMAGE = 3.0F;
     private int aoeCooldownTimer = 0;
     private boolean wasInCombat = false;
@@ -96,6 +98,15 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
                 // Visual feedback
                 this.level().playSound(null, this.blockPosition(),
                         SoundEvents.PLAYER_LEVELUP, this.getSoundSource(), 1.0F, 1.0F);
+
+                // Particle effect
+                if (this.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(
+                            net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER,
+                            this.getX(), this.getY() + 1.0D, this.getZ(),
+                            20, 0.5D, 0.5D, 0.5D, 0.1D
+                    );
+                }
             }
         }
     }
@@ -356,11 +367,8 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
             return;
         }
 
-        // Get all entities in radius
-        AABB area = new AABB(
-                this.getX() - AOE_RADIUS, this.getY() - 0.5, this.getZ() - AOE_RADIUS,
-                this.getX() + AOE_RADIUS, this.getY() + 2.0, this.getZ() + AOE_RADIUS
-        );
+        AABB area = this.getBoundingBox().inflate(AOE_RADIUS);
+
 
         List<LivingEntity> entities = this.level().getEntitiesOfClass(
                 LivingEntity.class, area,
@@ -403,20 +411,37 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
     }
 
     private void handleNaturalRegen() {
-        // Incrementar timer
-        regenTimer++;
+        boolean inCombat = this.getTarget() != null;
 
-        // A cada 5 segundos (100 ticks), regenerar 1 ou 2 HP baseado no level
-        if (regenTimer >= BASE_REGEN_INTERVAL) {
-            regenTimer = 0;
-
-            // Só regenerar se não estiver com vida cheia
-            if (this.getHealth() < this.getMaxHealth()) {
-                this.heal(getRegenAmount());
-
+        if (inCombat) {
+            // Cura em combate
+            inCombatRegenTimer++;
+            if (inCombatRegenTimer >= 200) { // 10 segundos
+                inCombatRegenTimer = 0;
+                if (this.getHealth() < this.getMaxHealth()) {
+                    float healAmount = (guardianLevel >= 2) ? 2.0F : 1.0F;
+                    this.heal(healAmount);
+                }
             }
+            // Reset fora de combate
+            outOfCombatRegenTimer = 0;
+        } else {
+            // Cura fora de combate
+            outOfCombatRegenTimer++;
+            if (outOfCombatRegenTimer >= 100) { // 5 segundos
+                outOfCombatRegenTimer = 0;
+                if (this.getHealth() < this.getMaxHealth()) {
+                    float healAmount = (guardianLevel >= 2) ? 2.0F : 1.0F;
+                    this.heal(healAmount);
+                }
+            }
+            // Reset em combate
+            inCombatRegenTimer = 0;
         }
     }
+
+
+
 
     private void updateAttributesFromEquipment() {
         ItemStack mainhand = this.getItemBySlot(EquipmentSlot.MAINHAND);
@@ -560,6 +585,8 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
 
     public boolean isHostileMob(LivingEntity entity) {
         if (entity == null) return false;
+
+        if (entity instanceof Creeper) return false;
 
         return entity instanceof Enemy
                 || entity instanceof Slime
