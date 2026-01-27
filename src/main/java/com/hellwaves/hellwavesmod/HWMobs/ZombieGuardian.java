@@ -794,19 +794,30 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
     public boolean canAttack(LivingEntity target) {
         if (target == null) return false;
 
+        // Never attack other ZombieGuardians
+        if (target instanceof ZombieGuardian) return false;
+
         boolean isDefending = this.getLastHurtByMob() == target;
 
         if (target instanceof Player ||
                 target instanceof IronGolem ||
                 target instanceof SnowGolem ||
                 target instanceof Wolf ||
-                target instanceof Villager ||
-                target instanceof ZombieGuardian) {
+                target instanceof Villager) {
 
             return isDefending;
         }
 
         return isHostileMob(target);
+    }
+    @Override
+    public boolean hurt(DamageSource source, float amount) {
+        // Se o dano vem de outro ZombieGuardian, ignora
+        if (source.getEntity() instanceof ZombieGuardian) {
+            return false;
+        }
+
+        return super.hurt(source, amount);
     }
 
     @Override
