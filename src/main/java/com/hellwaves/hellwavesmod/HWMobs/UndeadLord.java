@@ -9,6 +9,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -120,26 +121,38 @@ public class UndeadLord extends Zombie {
     public void tick() {
         super.tick();
 
-        // Apply gear on first tick if not already applied
-        if (!hasSpawnedGear && !this.level().isClientSide()) {
-            applySpawnGear();
-            hasSpawnedGear = true;
-        }
+        if (!this.level().isClientSide()) {
 
-        // Handle dash ability
-        handleDashAbility();
+            // 1. Auto-target: procura novo alvo se não tiver ou se o atual morreu
+            LivingEntity currentTarget = this.getTarget();
+            if (currentTarget == null || !currentTarget.isAlive()) {
+                Player nearestPlayer = this.level().getNearestPlayer(this, 35.0D);
+                if (nearestPlayer != null && nearestPlayer.isAlive()) {
+                    this.setTarget(nearestPlayer);
+                }
+            }
 
-        // Spawn minions every 15 seconds when in combat
-        if (this.getTarget() != null && this.isAlive()) {
-            minionSpawnTimer++;
+            // 2. Auto-defesa: retaliar quem atacou
+            LivingEntity attacker = this.getLastHurtByMob();
+            if (attacker != null && attacker.isAlive() && !(attacker instanceof UndeadLord || attacker.getPersistentData().getBoolean("UndeadLordMinion"))) {
+                this.setTarget(attacker);
+            }
 
-            if (minionSpawnTimer >= MINION_SPAWN_INTERVAL) {
-                spawnMinions();
-                minionSpawnTimer = 0;
-                minionsSpawned++;
+            // 3. Dash e spawn minions (o teu código já existente)
+            handleDashAbility();
+
+            if (this.getTarget() != null && this.isAlive()) {
+                minionSpawnTimer++;
+
+                if (minionSpawnTimer >= MINION_SPAWN_INTERVAL) {
+                    spawnMinions();
+                    minionSpawnTimer = 0;
+                    minionsSpawned++;
+                }
             }
         }
     }
+
 
     private void handleDashAbility() {
         if (!this.level().isClientSide()) {
