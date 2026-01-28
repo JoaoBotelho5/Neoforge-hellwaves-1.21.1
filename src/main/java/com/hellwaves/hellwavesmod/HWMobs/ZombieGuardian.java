@@ -62,7 +62,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
 
     // AOE Ability (Level 5)
     private static final int AOE_COOLDOWN = 200; // 7.5 segundos (20 ticks * 7.5)
-    private static final float AOE_RADIUS = 1.5F; // CHANGED: 1 block range instead of 1.5
+    private static final float AOE_RADIUS = 1.5F;
     private static final float AOE_DAMAGE = 3.0F;
     private int aoeCooldownTimer = 0;
     private boolean wasInCombat = false;
@@ -117,10 +117,10 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
 
     public ItemStack getUpgradeCost() {
         return switch (guardianLevel) {
-            case 1 -> new ItemStack(Items.BOOK, 5); // Level 1 -> 2: 5 books
-            case 2 -> new ItemStack(Items.DIAMOND_BLOCK, 1); // Level 2 -> 3: 1 diamond block
-            case 3 -> new ItemStack(Items.NETHERITE_SCRAP, 1); // Level 3 -> 4: 1 netherite scrap
-            case 4 -> new ItemStack(Items.NETHER_STAR, 1); // Level 4 -> 5: 1 nether star
+            case 1 -> new ItemStack(Items.BOOK, 5);
+            case 2 -> new ItemStack(Items.DIAMOND_BLOCK, 1);
+            case 3 -> new ItemStack(Items.NETHERITE_SCRAP, 1);
+            case 4 -> new ItemStack(Items.NETHER_STAR, 1);
             default -> ItemStack.EMPTY;
         };
     }
@@ -135,7 +135,6 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
             return false;
         }
 
-        // Check if player has the required items
         if (!player.getAbilities().instabuild && !hasRequiredItems(player, cost)) {
             player.displayClientMessage(
                     Component.literal("§cYou need " + cost.getCount() + "x " +
@@ -143,12 +142,10 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
             return false;
         }
 
-        // Consume items (if not in creative)
         if (!player.getAbilities().instabuild) {
             consumeItems(player, cost);
         }
 
-        // Perform upgrade
         setGuardianLevel(guardianLevel + 1);
 
         player.displayClientMessage(
@@ -184,503 +181,277 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
     }
 
     private void applyLevelBonuses(int oldLevel, int newLevel) {
-        // Level 2: Improved regeneration (already handled in getRegenAmount())
-
-        // Level 3: +10 health and heal to 30
         if (newLevel == 3) {
             var maxHealthAttr = this.getAttribute(Attributes.MAX_HEALTH);
             if (maxHealthAttr != null) {
                 double currentMax = maxHealthAttr.getBaseValue();
                 maxHealthAttr.setBaseValue(currentMax + 10.0D);
-
-                // Set health to 30 (new current HP after level 3)
                 this.setHealth(40.0F);
             }
         }
 
-        // Level 4: Permanent Resistance I
         if (newLevel == 4) {
-            // Remove any existing resistance to refresh it
             this.removeEffect(MobEffects.DAMAGE_RESISTANCE);
-            // Add permanent resistance (999999 ticks = ~13.8 hours, effectively permanent)
             this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 999999, 0, false, false));
         }
-
-        // Level 5: AOE ability (handled in tick())
     }
 
     private float getRegenAmount() {
-        // Level 1: 1 HP per 5 seconds
-        // Level 2+: 2 HP per 5 seconds
         return guardianLevel >= 2 ? 2.0F : 1.0F;
     }
 
-    @Override
-    protected void registerGoals() {
-        // Goals de movimento
-        this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new GuardianRangedBowAttackGoal(this, 1.0D, 20, 15.0F));
-        this.goalSelector.addGoal(2, new GuardianMeleeAttackGoal());
-        this.goalSelector.addGoal(3, new GuardianFollowGoal());
-        this.goalSelector.addGoal(4, new GuardianStayGoal());
-        this.goalSelector.addGoal(5, new GuardianWanderGoal());
-        this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0F));
-        this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
+    // ===== STATE MANAGEMENT METHODS =====
 
-        // Targeting - Ataque a mobs hostis
-        this.targetSelector.addGoal(0, new GuardianHurtByTargetGoal());
-        this.targetSelector.addGoal(1, new GuardianAttackHostilesGoal());
-    }
-
-    public static AttributeSupplier.Builder createAttributes() {
-        return Zombie.createAttributes()
-                .add(Attributes.MAX_HEALTH, 30.0D) // Changed from 50 to 20
-                .add(Attributes.ATTACK_DAMAGE, 5.0D)
-                .add(Attributes.ARMOR, 4.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.18D)
-                .add(Attributes.FOLLOW_RANGE, 30.0D);
-    }
-
-    @Override
-    protected boolean isSunSensitive() {
-        return false;
-    }
-
-    @Override
-    public boolean isBaby() {
-        return false;
-    }
-
-    @Override
-    public void setBaby(boolean baby) {
-        // Ignora
-    }
-
-    @Override
-    public boolean canBeSeenAsEnemy() {
-        return true;
-    }
-
-    @Override
-    public boolean isPreventingPlayerRest(Player player) {
-        return false;
-    }
-
-    @Override
-    public void tick() {
-        super.tick();
-
-        if (!this.level().isClientSide()) {
-            if (stateChangeCooldown > 0) {
-                stateChangeCooldown--;
-            }
-
-            if (currentState == GuardState.FOLLOW && followingPlayer != null && this.getTarget() == null) {
-                if (!followingPlayer.isAlive() || this.distanceToSqr(followingPlayer) > 100.0D) {
-                    setState(GuardState.STAY);
-                }
-            }
-
-            // Atualizar atributos baseado no equipamento
-            updateAttributesFromEquipment();
-
-            // Regeneração natural de saúde
-            handleNaturalRegen();
-
-            // Handle Level 5 AOE ability
-            if (guardianLevel >= 5) {
-                handleAOEAbility();
-            }
-
-            // FIXED: Continuously search for new targets after killing one
-            if (this.getTarget() == null || !this.getTarget().isAlive()) {
-                findNewTarget();
-            }
-        }
-    }
-
-    // FIXED: Add method to find new hostile targets
-    private void findNewTarget() {
-        if (this.level().isClientSide()) {
-            return;
-        }
-
-        // Search for hostile mobs within follow range
-        double range = this.getAttributeValue(Attributes.FOLLOW_RANGE);
-        AABB searchBox = this.getBoundingBox().inflate(range, range / 2, range);
-
-        java.util.List<LivingEntity> nearbyMobs = this.level().getEntitiesOfClass(
-                LivingEntity.class,
-                searchBox,
-                entity -> entity != this &&
-                        entity.isAlive() &&
-                        isHostileMob(entity) &&
-                        !(entity instanceof ZombieGuardian)  // FIXED: Don't target other guardians
-        );
-
-        if (!nearbyMobs.isEmpty()) {
-            // Find closest hostile mob
-            LivingEntity closest = null;
-            double closestDist = Double.MAX_VALUE;
-
-            for (LivingEntity mob : nearbyMobs) {
-                double dist = this.distanceToSqr(mob);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closest = mob;
-                }
-            }
-
-            if (closest != null) {
-                this.setTarget(closest);
-            }
-        }
-    }
-
-    private void handleAOEAbility() {
-        boolean inCombat = this.getTarget() != null;
-
-        // Reset cooldown when leaving combat
-        if (!inCombat && wasInCombat) {
-            aoeCooldownTimer = 0;
-        }
-
-        wasInCombat = inCombat;
-
-        // Only trigger in combat
-        if (!inCombat) {
-            return;
-        }
-
-        // Update cooldown
-        aoeCooldownTimer++;
-
-        // Trigger AOE when cooldown is ready
-        if (aoeCooldownTimer >= AOE_COOLDOWN) {
-            performAOEAttack();
-            aoeCooldownTimer = 0;
-        }
-    }
-
-    private void performAOEAttack() {
-        if (this.level().isClientSide()) {
-            return;
-        }
-
-        AABB area = this.getBoundingBox().inflate(AOE_RADIUS);
-
-
-        List<LivingEntity> entities = this.level().getEntitiesOfClass(
-                LivingEntity.class, area,
-                entity -> entity != this &&
-                        entity.isAlive() &&
-                        isHostileMob(entity) &&
-                        // FIXED: Explicitly exclude friendly mobs
-                        !(entity instanceof Player) &&
-                        !(entity instanceof IronGolem) &&
-                        !(entity instanceof SnowGolem) &&
-                        !(entity instanceof Wolf) &&
-                        !(entity instanceof Villager) &&
-                        !(entity instanceof ZombieGuardian)
-        );
-
-        // Damage all hostile entities
-        for (LivingEntity entity : entities) {
-            entity.hurt(this.damageSources().mobAttack(this), AOE_DAMAGE);
-        }
-
-        // Visual and sound effects
-        this.level().playSound(null, this.blockPosition(),
-                SoundEvents.PLAYER_ATTACK_SWEEP, this.getSoundSource(), 1.0F, 1.0F);
-
-        if (this.level() instanceof ServerLevel serverLevel) {
-            // Sweep particles
-            serverLevel.sendParticles(
-                    net.minecraft.core.particles.ParticleTypes.SWEEP_ATTACK,
-                    this.getX(), this.getY() + 1.0D, this.getZ(),
-                    10, AOE_RADIUS, 0.5D, AOE_RADIUS, 0.0D
-            );
-
-            // Damage indicator particles
-            serverLevel.sendParticles(
-                    net.minecraft.core.particles.ParticleTypes.DAMAGE_INDICATOR,
-                    this.getX(), this.getY() + 1.0D, this.getZ(),
-                    15, AOE_RADIUS * 0.5, 0.5D, AOE_RADIUS * 0.5, 0.1D
-            );
-        }
-    }
-
-    private void handleNaturalRegen() {
-        boolean inCombat = this.getTarget() != null;
-
-        if (inCombat) {
-            // Cura em combate
-            inCombatRegenTimer++;
-            if (inCombatRegenTimer >= 200) { // 10 segundos
-                inCombatRegenTimer = 0;
-                if (this.getHealth() < this.getMaxHealth()) {
-                    float healAmount = (guardianLevel >= 2) ? 2.0F : 1.0F;
-                    this.heal(healAmount);
-                }
-            }
-            // Reset fora de combate
-            outOfCombatRegenTimer = 0;
-        } else {
-            // Cura fora de combate
-            outOfCombatRegenTimer++;
-            if (outOfCombatRegenTimer >= 100) { // 5 segundos
-                outOfCombatRegenTimer = 0;
-                if (this.getHealth() < this.getMaxHealth()) {
-                    float healAmount = (guardianLevel >= 2) ? 2.0F : 1.0F;
-                    this.heal(healAmount);
-                }
-            }
-            // Reset em combate
-            inCombatRegenTimer = 0;
-        }
-    }
-
-
-
-
-    private void updateAttributesFromEquipment() {
-        ItemStack mainhand = this.getItemBySlot(EquipmentSlot.MAINHAND);
-
-        double baseAttack = 5.0D;
-        double totalAttack = baseAttack;
-
-        if (!mainhand.isEmpty()) {
-            var mainhandModifiers = mainhand.getAttributeModifiers();
-            for (var entry : mainhandModifiers.modifiers()) {
-                if (entry.attribute().is(Attributes.ATTACK_DAMAGE)) {
-                    totalAttack += entry.modifier().amount();
-                }
-            }
-
-            totalAttack += calculateEnchantmentDamageBonus(mainhand);
-        }
-
-        var attackAttribute = this.getAttribute(Attributes.ATTACK_DAMAGE);
-        if (attackAttribute != null && attackAttribute.getBaseValue() != totalAttack) {
-            attackAttribute.setBaseValue(totalAttack);
-        }
-    }
-
-    private double calculateEnchantmentDamageBonus(ItemStack stack) {
-        if (stack.isEmpty()) return 0.0D;
-
-        double bonus = 0.0D;
-
-        try {
-            var enchantmentRegistry = this.level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
-
-            int sharpnessLevel = stack.getEnchantmentLevel(enchantmentRegistry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SHARPNESS));
-            if (sharpnessLevel > 0) {
-                bonus += 0.5D + (sharpnessLevel * 0.5D);
-            }
-
-            int smiteLevel = stack.getEnchantmentLevel(enchantmentRegistry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SMITE));
-            if (smiteLevel > 0) {
-                bonus += smiteLevel * 2.5D;
-            }
-
-            int baneLevel = stack.getEnchantmentLevel(enchantmentRegistry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.BANE_OF_ARTHROPODS));
-            if (baneLevel > 0) {
-                bonus += baneLevel * 2.5D;
-            }
-
-            int impalingLevel = stack.getEnchantmentLevel(enchantmentRegistry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.IMPALING));
-            if (impalingLevel > 0 && (this.isInWater() || this.level().isRainingAt(this.blockPosition()))) {
-                bonus += impalingLevel * 2.5D;
-            }
-
-        } catch (Exception e) {
-            System.err.println("Error calculating enchantment bonus: " + e.getMessage());
-        }
-
-        return bonus;
-    }
-
-    public GuardState getState() {
+    public GuardState getCurrentState() {
         return currentState;
     }
 
-    public void setState(GuardState newState) {
-        if (stateChangeCooldown > 0) {
-            return;
-        }
+    public void cycleState(Player player) {
+        if (stateChangeCooldown > 0) return;
 
-        this.currentState = newState;
-        this.stateChangeCooldown = 20;
-
-        if (newState != GuardState.FOLLOW) {
-            this.followingPlayer = null;
-        }
-
-        this.navigation.stop();
-    }
-
-    public void setFollowingPlayer(Player player) {
-        this.followingPlayer = player;
-        setState(GuardState.FOLLOW);
-    }
-
-    @Override
-    public InteractionResult mobInteract(Player player, InteractionHand hand) {
-        if (this.level().isClientSide()) {
-            return InteractionResult.SUCCESS;
-        }
-
-        ItemStack itemInHand = player.getItemInHand(hand);
-
-        // State changing with items
-        if (itemInHand.is(Items.STICK)) {
-            cycleState(player);
-            return InteractionResult.SUCCESS;
-        }
-
-        // Open inventory with empty hand or while sneaking
-        if (itemInHand.isEmpty() || player.isShiftKeyDown()) {
-            player.openMenu(new net.minecraft.world.MenuProvider() {
-                @Override
-                public Component getDisplayName() {
-                    return Component.literal("Zombie Guardian");
-                }
-
-                @Override
-                public net.minecraft.world.inventory.AbstractContainerMenu createMenu(
-                        int containerId,
-                        net.minecraft.world.entity.player.Inventory playerInventory,
-                        Player player) {
-                    return new GuardianInventoryMenu(containerId, playerInventory, ZombieGuardian.this);
-                }
-            }, buf -> buf.writeInt(this.getId()));
-            return InteractionResult.SUCCESS;
-        }
-
-        return InteractionResult.PASS;
-    }
-
-    private void cycleState(Player player) {
-        GuardState nextState = switch (currentState) {
+        currentState = switch (currentState) {
             case STAY -> GuardState.FOLLOW;
             case FOLLOW -> GuardState.WANDER_AREA;
             case WANDER_AREA -> GuardState.STAY;
         };
 
-        setState(nextState);
-
-        if (nextState == GuardState.FOLLOW) {
-            setFollowingPlayer(player);
+        if (currentState == GuardState.FOLLOW) {
+            followingPlayer = player;
         }
 
-        String stateMessage = switch (nextState) {
-            case STAY -> "§eGuardian will now STAY";
-            case FOLLOW -> "§aGuardian will now FOLLOW you";
-            case WANDER_AREA -> "§bGuardian will now WANDER";
+        this.getNavigation().stop();
+
+        String stateName = switch (currentState) {
+            case STAY -> "§cStay";
+            case FOLLOW -> "§aFollow";
+            case WANDER_AREA -> "§eWander";
         };
 
-        player.displayClientMessage(Component.literal(stateMessage), true);
+        player.displayClientMessage(Component.literal("Guardian mode: " + stateName), true);
+
+        stateChangeCooldown = 20;
     }
 
-    public boolean isHostileMob(LivingEntity entity) {
-        if (entity == null) return false;
+    // ===== AI REGISTRATION =====
 
-        if (entity instanceof Creeper) return false;
+    @Override
+    protected void registerGoals() {
+        this.goalSelector.addGoal(0, new FloatGoal(this));
+        this.goalSelector.addGoal(1, new GuardianStayGoal());
+        this.goalSelector.addGoal(1, new GuardianFollowGoal());
+        this.goalSelector.addGoal(1, new GuardianWanderGoal());
+        this.goalSelector.addGoal(2, new GuardianRangedBowAttackGoal<>(this, 1.0D, 20, 15.0F));
+        this.goalSelector.addGoal(3, new GuardianMeleeAttackGoal());
+        this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
+        this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
 
-        return entity instanceof Enemy
-                || entity instanceof Slime
-                || entity instanceof AbstractPiglin
-                || entity instanceof Ghast
-                || entity instanceof EnderMan
-                || entity instanceof Shulker;
+        this.targetSelector.addGoal(1, new GuardianHurtByTargetGoal());
+        this.targetSelector.addGoal(2, new GuardianAttackHostilesGoal());
     }
 
-    private boolean isHoldingBow() {
-        ItemStack mainhand = this.getItemBySlot(EquipmentSlot.MAINHAND);
-        return mainhand.getItem() instanceof BowItem;
+    public static AttributeSupplier.Builder createAttributes() {
+        return Monster.createMonsterAttributes()
+                .add(Attributes.MAX_HEALTH, 30.0D)
+                .add(Attributes.MOVEMENT_SPEED, 0.25D)
+                .add(Attributes.ATTACK_DAMAGE, 5.0D)
+                .add(Attributes.ARMOR, 2.0D)
+                .add(Attributes.FOLLOW_RANGE, 32.0D)
+                .add(Attributes.SPAWN_REINFORCEMENTS_CHANCE, 0.0D);
+    }
+
+    // ===== TICK & ABILITIES =====
+
+    @Override
+    public void aiStep() {
+        super.aiStep();
+
+        if (!this.level().isClientSide()) {
+            if (stateChangeCooldown > 0) {
+                stateChangeCooldown--;
+            }
+            if (aoeCooldownTimer > 0) {
+                aoeCooldownTimer--;
+            }
+
+            handleRegeneration();
+
+            if (guardianLevel >= 5) {
+                handleAOEAbility();
+            }
+
+            updateWeapon();
+        }
+    }
+
+    private void handleRegeneration() {
+        boolean inCombat = this.getTarget() != null;
+
+        if (inCombat != wasInCombat) {
+            wasInCombat = inCombat;
+            if (!inCombat) {
+                outOfCombatRegenTimer = 0;
+            } else {
+                inCombatRegenTimer = 0;
+            }
+        }
+
+        if (inCombat) {
+            inCombatRegenTimer++;
+            if (inCombatRegenTimer >= BASE_REGEN_INTERVAL * 4) {
+                if (this.getHealth() < this.getMaxHealth()) {
+                    this.heal(getRegenAmount());
+                }
+                inCombatRegenTimer = 0;
+            }
+        } else {
+            outOfCombatRegenTimer++;
+            if (outOfCombatRegenTimer >= BASE_REGEN_INTERVAL) {
+                if (this.getHealth() < this.getMaxHealth()) {
+                    this.heal(getRegenAmount());
+                }
+                outOfCombatRegenTimer = 0;
+            }
+        }
+    }
+
+    private void handleAOEAbility() {
+        if (this.getTarget() == null || aoeCooldownTimer > 0) return;
+
+        AABB searchBox = this.getBoundingBox().inflate(AOE_RADIUS);
+        List<LivingEntity> nearbyMobs = this.level().getEntitiesOfClass(
+                LivingEntity.class,
+                searchBox,
+                entity -> entity != this &&
+                        entity instanceof Mob mob &&
+                        isHostileMob(mob) &&
+                        !(entity instanceof ZombieGuardian) &&
+                        entity.isAlive()
+        );
+
+        if (!nearbyMobs.isEmpty()) {
+            for (LivingEntity mob : nearbyMobs) {
+                mob.hurt(this.damageSources().mobAttack(this), AOE_DAMAGE);
+
+                if (this.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(
+                            net.minecraft.core.particles.ParticleTypes.SWEEP_ATTACK,
+                            mob.getX(), mob.getY() + mob.getBbHeight() / 2, mob.getZ(),
+                            3, 0.5D, 0.5D, 0.5D, 0.0D
+                    );
+                }
+            }
+
+            this.level().playSound(null, this.blockPosition(),
+                    SoundEvents.PLAYER_ATTACK_SWEEP, this.getSoundSource(), 1.0F, 1.0F);
+
+            aoeCooldownTimer = AOE_COOLDOWN;
+        }
+    }
+
+    private void updateWeapon() {
+        // Weapon handling is done through the AI goals
+    }
+
+    // ===== INTERACTION =====
+
+    @Override
+    public InteractionResult mobInteract(Player player, InteractionHand hand) {
+        if (!this.level().isClientSide()) {
+            if (player.isShiftKeyDown()) {
+                // SHIFT + RIGHT-CLICK: Open inventory
+                player.openMenu(new net.minecraft.world.MenuProvider() {
+                    @Override
+                    public Component getDisplayName() {
+                        return Component.literal("Guardian Inventory");
+                    }
+
+                    @Override
+                    public net.minecraft.world.inventory.AbstractContainerMenu createMenu(int containerId, net.minecraft.world.entity.player.Inventory playerInventory, Player player) {
+                        return new GuardianInventoryMenu(containerId, playerInventory, ZombieGuardian.this);
+                    }
+                }, buf -> buf.writeInt(ZombieGuardian.this.getId()));
+
+                return InteractionResult.SUCCESS;
+            } else {
+                // NORMAL RIGHT-CLICK: Cycle state
+                cycleState(player);
+                return InteractionResult.SUCCESS;
+            }
+        }
+        return InteractionResult.sidedSuccess(this.level().isClientSide());
+    }
+
+    // ===== BOW HANDLING =====
+
+    public boolean isHoldingBow() {
+        ItemStack mainHand = this.getItemBySlot(EquipmentSlot.MAINHAND);
+        return mainHand.getItem() instanceof BowItem;
     }
 
     @Override
-    public void performRangedAttack(LivingEntity target, float pullProgress) {
-        if (!isHoldingBow() || !isHostileMob(target)) {
-            return;
+    public void performRangedAttack(LivingEntity target, float velocity) {
+        ItemStack arrowItem = new ItemStack(Items.ARROW);
+        Arrow arrow = new Arrow(this.level(), this, arrowItem, null);
+
+        double deltaX = target.getX() - this.getX();
+        double deltaY = target.getY(0.3333333333333333D) - arrow.getY();
+        double deltaZ = target.getZ() - this.getZ();
+        double horizontalDistance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+
+        arrow.shoot(deltaX, deltaY + horizontalDistance * 0.20000000298023224D, deltaZ, 1.6F, 14.0F);
+
+        if (guardianLevel >= 2) {
+            arrow.setBaseDamage(arrow.getBaseDamage() + (guardianLevel - 1) * 0.5D);
         }
 
-        ItemStack bow = this.getItemBySlot(EquipmentSlot.MAINHAND);
-        Arrow arrow = createArrow(bow, pullProgress);
-
-        double dx = target.getX() - this.getX();
-        double dy = target.getY(0.3333) - arrow.getY();
-        double dz = target.getZ() - this.getZ();
-        double distance = Math.sqrt(dx * dx + dz * dz);
-
-        arrow.shoot(dx, dy + distance * 0.2, dz, 1.6F, 14 - this.level().getDifficulty().getId() * 4);
-
-        this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
         this.level().addFreshEntity(arrow);
+        this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
     }
 
-    private Arrow createArrow(ItemStack bow, float pullProgress) {
-        Arrow arrow = new Arrow(this.level(), this, new ItemStack(Items.ARROW), null);
-        arrow.setBaseDamage(arrow.getBaseDamage() + this.getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.3);
+    // ===== HOSTILE MOB DETECTION =====
 
-        try {
-            var enchantmentRegistry = this.level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
+    public boolean isHostileMob(LivingEntity entity) {
+        if (entity == null || entity == this) return false;
+        if (entity instanceof ZombieGuardian) return false;
 
-            int powerLevel = bow.getEnchantmentLevel(enchantmentRegistry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.POWER));
-            if (powerLevel > 0) {
-                arrow.setBaseDamage(arrow.getBaseDamage() + (double) powerLevel * 0.5 + 0.5);
-            }
-
-            int punchLevel = bow.getEnchantmentLevel(enchantmentRegistry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.PUNCH));
-            if (punchLevel > 0) {
-                CompoundTag arrowTag = new CompoundTag();
-                arrowTag.putByte("knockback", (byte) punchLevel);
-                arrow.load(arrowTag);
-            }
-
-            int flameLevel = bow.getEnchantmentLevel(enchantmentRegistry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.FLAME));
-            if (flameLevel > 0) {
-                arrow.igniteForSeconds(100);
-            }
-        } catch (Exception e) {
-            System.err.println("Error applying bow enchantments: " + e.getMessage());
-        }
-
-        arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
-
-        return arrow;
+        // Include all illagers (Vindicator, Evoker, Pillager, Illusioner, etc.)
+        return entity instanceof Monster ||
+                entity instanceof Slime ||
+                entity instanceof Ghast ||
+                entity instanceof AbstractPiglin ||
+                entity instanceof AbstractIllager ||  // This covers all illager types
+                entity instanceof Vex;  // Vexes summoned by Evokers
     }
 
-    private static class GuardianRangedBowAttackGoal extends RangedBowAttackGoal<ZombieGuardian> {
-        private final ZombieGuardian guardian;
+    // ===== CUSTOM AI GOALS =====
 
-        public GuardianRangedBowAttackGoal(ZombieGuardian guardian, double speedModifier, int attackInterval, float attackRadius) {
-            super(guardian, speedModifier, attackInterval, attackRadius);
-            this.guardian = guardian;
+    private class GuardianRangedBowAttackGoal<T extends Monster & RangedAttackMob> extends RangedBowAttackGoal<T> {
+        public GuardianRangedBowAttackGoal(T mob, double speedModifier, int attackInterval, float attackRadius) {
+            super(mob, speedModifier, attackInterval, attackRadius);
         }
 
         @Override
         public boolean canUse() {
-            return guardian.isHoldingBow() &&
-                    guardian.getTarget() != null &&
-                    guardian.isHostileMob(guardian.getTarget()) &&
+            LivingEntity target = ZombieGuardian.this.getTarget();
+            return ZombieGuardian.this.isHoldingBow() &&
+                    target != null &&
+                    isHostileMob(target) &&
                     super.canUse();
         }
 
         @Override
         public boolean canContinueToUse() {
-            return guardian.isHoldingBow() &&
-                    guardian.getTarget() != null &&
-                    guardian.isHostileMob(guardian.getTarget()) &&
+            LivingEntity target = ZombieGuardian.this.getTarget();
+            return ZombieGuardian.this.isHoldingBow() &&
+                    target != null &&
+                    isHostileMob(target) &&
                     super.canContinueToUse();
         }
     }
 
     private class GuardianMeleeAttackGoal extends MeleeAttackGoal {
         public GuardianMeleeAttackGoal() {
-            super(ZombieGuardian.this, 1.4D, true);
+            super(ZombieGuardian.this, 1.2D, false);
         }
 
         @Override
@@ -779,6 +550,13 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
             LivingEntity attacker = ZombieGuardian.this.getLastHurtByMob();
             return attacker != null && isHostileMob(attacker) && super.canUse();
         }
+
+        @Override
+        protected void alertOther(Mob mob, LivingEntity target) {
+            if (target != null && isHostileMob(target)) {
+                super.alertOther(mob, target);
+            }
+        }
     }
 
     private class GuardianAttackHostilesGoal extends NearestAttackableTargetGoal<LivingEntity> {
@@ -786,15 +564,24 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
             super(ZombieGuardian.this, LivingEntity.class, 20, true, false,
                     entity -> entity instanceof Mob mob &&
                             isHostileMob(mob) &&
-                            !(entity instanceof ZombieGuardian));  // FIXED: Don't target other guardians
+                            !(entity instanceof ZombieGuardian));
+        }
+
+        @Override
+        public void start() {
+            super.start();
+        }
+
+        @Override
+        public void stop() {
+            super.stop();
+            ZombieGuardian.this.setTarget(null);
         }
     }
 
     @Override
     public boolean canAttack(LivingEntity target) {
         if (target == null) return false;
-
-        // Never attack other ZombieGuardians
         if (target instanceof ZombieGuardian) return false;
 
         boolean isDefending = this.getLastHurtByMob() == target;
@@ -804,19 +591,17 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
                 target instanceof SnowGolem ||
                 target instanceof Wolf ||
                 target instanceof Villager) {
-
             return isDefending;
         }
 
         return isHostileMob(target);
     }
+
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        // Se o dano vem de outro ZombieGuardian, ignora
         if (source.getEntity() instanceof ZombieGuardian) {
             return false;
         }
-
         return super.hurt(source, amount);
     }
 
@@ -868,9 +653,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
         }
         if (compound.contains("GuardianLevel")) {
             int savedLevel = compound.getInt("GuardianLevel");
-            // Apply level without triggering effects on load
             this.guardianLevel = savedLevel;
-            // Re-apply permanent effects that may have been lost
             if (savedLevel >= 4) {
                 this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 999999, 0, false, false));
             }
