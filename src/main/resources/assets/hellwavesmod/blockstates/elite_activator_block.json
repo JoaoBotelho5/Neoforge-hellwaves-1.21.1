@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "level=1": {
+      "model": "hellwavesmod:block/elite_portal_level1"
+    },
+    "level=2": {
+      "model": "hellwavesmod:block/elite_portal_level2"
+    },
+    "level=3": {
+      "model": "hellwavesmod:block/elite_portal_level3"
+    },
+    "level=4": {
+      "model": "hellwavesmod:block/elite_portal_level4"
+    },
+    "level=5": {
+      "model": "hellwavesmod:block/elite_portal_level5"
+    }
+  }
+}

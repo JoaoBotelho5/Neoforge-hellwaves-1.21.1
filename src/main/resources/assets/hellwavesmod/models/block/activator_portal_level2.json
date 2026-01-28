@@ -1,0 +1,100 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "portal": "hellwavesmod:block/portal_texture",
+    "particle": "hellwavesmod:block/portal_texture"
+  },
+  "elements": [
+    {
+      "comment": "Centro - Level 2",
+      "from": [6, 6, 6],
+      "to": [10, 10, 10],
+      "faces": {
+        "north": {"texture": "#portal"},
+        "south": {"texture": "#portal"},
+        "east": {"texture": "#portal"},
+        "west": {"texture": "#portal"},
+        "up": {"texture": "#portal"},
+        "down": {"texture": "#portal"}
+      }
+    },
+    {
+      "comment": "Projeção Norte",
+      "from": [7, 7, 4],
+      "to": [9, 9, 6],
+      "faces": {
+        "north": {"texture": "#portal"},
+        "south": {"texture": "#portal"},
+        "east": {"texture": "#portal"},
+        "west": {"texture": "#portal"},
+        "up": {"texture": "#portal"},
+        "down": {"texture": "#portal"}
+      }
+    },
+    {
+      "comment": "Projeção Sul",
+      "from": [7, 7, 10],
+      "to": [9, 9, 12],
+      "faces": {
+        "north": {"texture": "#portal"},
+        "south": {"texture": "#portal"},
+        "east": {"texture": "#portal"},
+        "west": {"texture": "#portal"},
+        "up": {"texture": "#portal"},
+        "down": {"texture": "#portal"}
+      }
+    },
+    {
+      "comment": "Projeção Leste",
+      "from": [10, 7, 7],
+      "to": [12, 9, 9],
+      "faces": {
+        "north": {"texture": "#portal"},
+        "south": {"texture": "#portal"},
+        "east": {"texture": "#portal"},
+        "west": {"texture": "#portal"},
+        "up": {"texture": "#portal"},
+        "down": {"texture": "#portal"}
+      }
+    },
+    {
+      "comment": "Projeção Oeste",
+      "from": [4, 7, 7],
+      "to": [6, 9, 9],
+      "faces": {
+        "north": {"texture": "#portal"},
+        "south": {"texture": "#portal"},
+        "east": {"texture": "#portal"},
+        "west": {"texture": "#portal"},
+        "up": {"texture": "#portal"},
+        "down": {"texture": "#portal"}
+      }
+    },
+    {
+      "comment": "Projeção Cima",
+      "from": [7, 10, 7],
+      "to": [9, 12, 9],
+      "faces": {
+        "north": {"texture": "#portal"},
+        "south": {"texture": "#portal"},
+        "east": {"texture": "#portal"},
+        "west": {"texture": "#portal"},
+        "up": {"texture": "#portal"},
+        "down": {"texture": "#portal"}
+      }
+    },
+    {
+      "comment": "Projeção Baixo",
+      "from": [7, 4, 7],
+      "to": [9, 6, 9],
+      "faces": {
+        "north": {"texture": "#portal"},
+        "south": {"texture": "#portal"},
+        "east": {"texture": "#portal"},
+        "west": {"texture": "#portal"},
+        "up": {"texture": "#portal"},
+        "down": {"texture": "#portal"}
+      }
+    }
+  ]
+}

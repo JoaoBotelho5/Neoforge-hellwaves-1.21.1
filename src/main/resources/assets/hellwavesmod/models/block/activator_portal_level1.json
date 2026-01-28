@@ -1,0 +1,22 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "portal": "hellwavesmod:block/portal_texture",
+    "particle": "hellwavesmod:block/portal_texture"
+  },
+  "elements": [
+    {
+      "comment": "Centro - Level 1",
+      "from": [7, 7, 7],
+      "to": [9, 9, 9],
+      "faces": {
+        "north": {"texture": "#portal"},
+        "south": {"texture": "#portal"},
+        "east": {"texture": "#portal"},
+        "west": {"texture": "#portal"},
+        "up": {"texture": "#portal"},
+        "down": {"texture": "#portal"}
+      }
+    }
+  ]
+}

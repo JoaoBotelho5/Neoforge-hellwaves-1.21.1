@@ -14,14 +14,25 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import org.jetbrains.annotations.Nullable;
 
 public class ActivatorBlock extends Block implements EntityBlock {
+
+    // Propriedade para controlar o tamanho do portal (1, 2 ou 3)
+    public static final IntegerProperty LEVEL = IntegerProperty.create("level", 1, 3);
 
     private static final int TICKS_BETWEEN_WAVES = 1200;
 
     public ActivatorBlock(Properties properties) {
         super(properties);
+        this.registerDefaultState(this.stateDefinition.any().setValue(LEVEL, 1));
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(LEVEL);
     }
 
     @Override
@@ -37,14 +48,35 @@ public class ActivatorBlock extends Block implements EntityBlock {
 
     private static void tick(Level level, BlockPos pos, BlockState state, ActivatorBlockEntity blockEntity) {
         if (level instanceof ServerLevel serverLevel) {
+            // Verificar se o bloco ainda existe
+            if (serverLevel.getBlockState(pos).isAir() || serverLevel.getBlockState(pos).getBlock() != state.getBlock()) {
+                return;
+            }
+
             blockEntity.tick(serverLevel);
+
+            // Atualizar o tamanho do portal baseado na wave atual
+            int currentWave = blockEntity.nextWave - 1;
+            int portalLevel = 1;
+
+            if (currentWave >= 3) {
+                portalLevel = 3; // Wave 3+ = portal grande
+            } else if (currentWave >= 2) {
+                portalLevel = 2; // Wave 2 = portal médio
+            } else {
+                portalLevel = 1; // Wave 1 = portal pequeno
+            }
+
+            // Verificar novamente se o bloco ainda existe antes de atualizar
+            if (serverLevel.getBlockState(pos).getBlock() == state.getBlock() && state.getValue(LEVEL) != portalLevel) {
+                serverLevel.setBlock(pos, state.setValue(LEVEL, portalLevel), 3);
+            }
         }
     }
 
     @Override
     public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean isMoving) {
         if (!world.isClientSide) {
-            // Schedule first tick for explosion/mob check
             world.scheduleTick(pos, this, 1);
         }
     }
@@ -54,10 +86,15 @@ public class ActivatorBlock extends Block implements EntityBlock {
         BlockEntity be = world.getBlockEntity(pos);
         if (!(be instanceof ActivatorBlockEntity blockEntity)) return;
 
-        // Remove dead mobs
+        // Verificar se o bloco foi removido
+        if (world.getBlockState(pos).isAir() || world.getBlockState(pos).getBlock() != this) {
+            return;
+        }
+
         blockEntity.activeMobs.removeIf(mob -> !mob.isAlive() || mob.isRemoved());
+
         if (!blockEntity.activeMobs.isEmpty()) {
-            final double ACTIVATION_RADIUS = 1.5;// VALOR X AND Y
+            final double ACTIVATION_RADIUS = 1.5;
             final double DOUBLE_ACTIVATION_RADIUS_SQR = ACTIVATION_RADIUS * ACTIVATION_RADIUS;
 
             for (Mob mob : blockEntity.activeMobs) {
@@ -67,12 +104,18 @@ public class ActivatorBlock extends Block implements EntityBlock {
 
                 if (horizontalDistanceSqr <= DOUBLE_ACTIVATION_RADIUS_SQR) {
                     explode(world, pos, blockEntity);
-                    return;
+                    return; // NÃO AGENDAR MAIS TICKS
                 }
             }
         }
 
-        // Automatic wave activation
+        // Verificar se completou todas as waves
+        if (blockEntity.activeMobs.isEmpty() && blockEntity.nextWave > ActivatorBlockEntity.MAX_WAVES) {
+            // Todas as waves completas e sem mobs - remover o bloco
+            world.removeBlock(pos, false);
+            return;
+        }
+
         if (blockEntity.activeMobs.isEmpty() && blockEntity.nextWave <= ActivatorBlockEntity.MAX_WAVES) {
             if (blockEntity.tickCountdown <= 0) {
                 int wave = blockEntity.nextWave;
@@ -87,21 +130,28 @@ public class ActivatorBlock extends Block implements EntityBlock {
 
                 blockEntity.nextWave++;
                 blockEntity.tickCountdown = TICKS_BETWEEN_WAVES;
-                blockEntity.setChanged(); // Mark as changed
+                blockEntity.setChanged();
             } else {
                 blockEntity.tickCountdown--;
-                // Only mark as changed occasionally to reduce disk I/O
                 if (blockEntity.tickCountdown % 20 == 0) {
                     blockEntity.setChanged();
                 }
             }
         }
 
-        // Always schedule next tick
         world.scheduleTick(pos, this, 1);
     }
 
     private void explode(ServerLevel world, BlockPos pos, ActivatorBlockEntity blockEntity) {
+        // Limpar tudo primeiro
+        blockEntity.clearMobs();
+        blockEntity.nextWave = 1;
+        blockEntity.tickCountdown = 0;
+
+        // REMOVER O BLOCO
+        world.removeBlock(pos, false);
+
+        // Depois explodir
         world.explode(
                 null,
                 pos.getX() + 0.5,
@@ -110,11 +160,6 @@ public class ActivatorBlock extends Block implements EntityBlock {
                 25.0f,
                 Level.ExplosionInteraction.BLOCK
         );
-
-        blockEntity.nextWave = 1;
-        blockEntity.clearMobs(); // Use helper method that calls setChanged()
-        blockEntity.tickCountdown = 0;
-        blockEntity.setChanged();
     }
 
     public void activateWave(Level world, BlockPos pos, Player player) {

@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "level=1": {
+      "model": "hellwavesmod:block/activator_portal_level1"
+    },
+    "level=2": {
+      "model": "hellwavesmod:block/activator_portal_level2"
+    },
+    "level=3": {
+      "model": "hellwavesmod:block/activator_portal_level3"
+    }
+  }
+}
