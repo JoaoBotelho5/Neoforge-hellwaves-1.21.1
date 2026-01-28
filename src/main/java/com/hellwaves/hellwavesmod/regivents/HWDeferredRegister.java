@@ -6,6 +6,8 @@ import com.hellwaves.hellwavesmod.HWMobs.UndeadLord;
 import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
 import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
 import com.hellwaves.hellwavesmod.HellwavesMod;
+import com.hellwaves.hellwavesmod.Items.EmptySoulCageItem;
+import com.hellwaves.hellwavesmod.Items.SoulCageItem;
 import com.hellwaves.hellwavesmod.Items.ZombieGuardianSummonerItem;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
@@ -41,11 +43,13 @@ public class HWDeferredRegister {
             () -> new ActivatorBlock(BlockBehaviour.Properties.of()
                     .strength(-1.0f)
                     .requiresCorrectToolForDrops()
+                    .isValidSpawn((state, level, pos, type) -> false)
+                    .forceSolidOn() // Force the block to be considered solid
             )
     );
 
     public static final DeferredHolder<Item, BlockItem> ACTIVATOR_BLOCK_ITEM = ITEMS.register(
-           "activator_block",
+            "activator_block",
             () -> new BlockItem(ACTIVATOR_BLOCK.get(), new Item.Properties())
     );
 
@@ -54,6 +58,8 @@ public class HWDeferredRegister {
             () -> new EliteActivatorBlock(BlockBehaviour.Properties.of()
                     .strength(-1.0f)
                     .requiresCorrectToolForDrops()
+                    .isValidSpawn((state, level, pos, type) -> false)
+                    .forceSolidOn() // Force the block to be considered solid
             )
     );
 
@@ -88,16 +94,7 @@ public class HWDeferredRegister {
                     .build("zombie_guardian")
     );
 
-    // spawn egg for guardian zombie
-    public static final DeferredHolder<Item, Item> ZOMBIE_GUARDIAN_SPAWN_EGG = ITEMS.register(
-            "zombie_guardian_spawn_egg",
-            () -> new SpawnEggItem(
-                    ZOMBIE_GUARDIAN.get(),
-                    0x2E8B57, // Cor verde escura
-                    0x228B22, // Cor verde
-                    new Item.Properties()
-            )
-    );
+    // Spawn egg removed - use Zombie Guardian Soul item instead
 
     public static final DeferredHolder<Item, Item> ZOMBIE_GUARDIAN_SUMMONER =
             ITEMS.register("zombie_guardian_summoner",
@@ -105,6 +102,23 @@ public class HWDeferredRegister {
                             new Item.Properties().stacksTo(16)
                     )
             );
+
+    // Soul Cage Items
+    public static final DeferredHolder<Item, Item> EMPTY_SOUL_CAGE = ITEMS.register(
+            "empty_soul_cage",
+            () -> new EmptySoulCageItem(
+                    new Item.Properties()
+                            .stacksTo(16)
+            )
+    );
+
+    public static final DeferredHolder<Item, Item> SOUL_CAGE = ITEMS.register(
+            "soul_cage",
+            () -> new SoulCageItem(
+                    new Item.Properties()
+                            .stacksTo(1) // Can only stack 1 since each contains unique guardian data
+            )
+    );
 
 
 

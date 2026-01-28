@@ -1,5 +1,7 @@
 {
   "block.hellwavesmod.activator_block": "Predatory Night Vortex",
   "block.hellwavesmod.elite_activator_block": "Wastelands Vortex",
-  "item.hellwavesmod.zombie_guardian_spawn_egg": "Zombie Guardian"
+  "item.hellwavesmod.empty_soul_cage": "Empty Soul Cage",
+  "item.hellwavesmod.soul_cage": "Soul Cage",
+  "item.hellwavesmod.zombie_guardian_summoner": "Zombie Guardian Soul"
 }

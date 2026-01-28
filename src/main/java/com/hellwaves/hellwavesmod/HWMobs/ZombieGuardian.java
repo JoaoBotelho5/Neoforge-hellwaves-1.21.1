@@ -45,10 +45,15 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
         WANDER_AREA // Vaga pela área
     }
 
-    private GuardState currentState = GuardState.WANDER_AREA;
+    private GuardState currentState = GuardState.STAY; // Start in STAY mode
     private Player followingPlayer = null;
     private int stateChangeCooldown = 0;
     private GuardianInventory guardianInventory;
+    private boolean restoringFromCage = false;
+
+    public void setRestoringFromCage(boolean restoring) {
+        this.restoringFromCage = restoring;
+    }
 
     // Leveling System
     private int guardianLevel = 1;
@@ -92,7 +97,8 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
             int oldLevel = this.guardianLevel;
             this.guardianLevel = level;
 
-            if (!this.level().isClientSide()) {
+            // Only apply level bonuses if NOT restoring from Soul Cage
+            if (!restoringFromCage && !this.level().isClientSide()) {
                 applyLevelBonuses(oldLevel, level);
 
                 // Visual feedback
@@ -110,6 +116,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
             }
         }
     }
+
 
     public boolean canUpgrade() {
         return guardianLevel < MAX_LEVEL;
@@ -167,12 +174,6 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
         }
         return false;
     }
-
-    @Override
-    protected boolean isSunSensitive() {
-        return false;
-    }
-
 
     private void consumeItems(Player player, ItemStack required) {
         int remaining = required.getCount();
@@ -252,27 +253,22 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
         this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
 
         this.targetSelector.addGoal(1, new GuardianHurtByTargetGoal());
-
-        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(
-                this, AbstractIllager.class, true));
-
-        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(
-                this, Vex.class, true));
-
-        this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(
-                this, Ravager.class, true));
-
-        this.targetSelector.addGoal(5, new GuardianAttackHostilesGoal());
+        this.targetSelector.addGoal(2, new GuardianAttackHostilesGoal());
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 30.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.25D)
+                .add(Attributes.MOVEMENT_SPEED, 0.18D) // Slower than default (0.25D -> 0.18D)
                 .add(Attributes.ATTACK_DAMAGE, 5.0D)
                 .add(Attributes.ARMOR, 2.0D)
                 .add(Attributes.FOLLOW_RANGE, 32.0D)
-                .add(Attributes.SPAWN_REINFORCEMENTS_CHANCE, 0.0D);
+                .add(Attributes.SPAWN_REINFORCEMENTS_CHANCE, 0.0D); // Required for proper entity loading
+    }
+
+    @Override
+    public boolean isSunBurnTick() {
+        return false; // Guardian Zombies are immune to sunlight
     }
 
     // ===== TICK & ABILITIES =====
@@ -372,7 +368,14 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
 
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
+        ItemStack itemInHand = player.getItemInHand(hand);
+
         if (!this.level().isClientSide()) {
+            // Check if player is holding an Empty Soul Cage
+            if (itemInHand.getItem() instanceof com.hellwaves.hellwavesmod.Items.EmptySoulCageItem) {
+                return com.hellwaves.hellwavesmod.Items.EmptySoulCageItem.captureGuardian(itemInHand, player, this);
+            }
+
             if (player.isShiftKeyDown()) {
                 // SHIFT + RIGHT-CLICK: Open inventory
                 player.openMenu(new net.minecraft.world.MenuProvider() {
@@ -576,22 +579,77 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
     }
 
     private class GuardianAttackHostilesGoal extends NearestAttackableTargetGoal<LivingEntity> {
+        private int retargetTimer = 0;
+        private static final int RETARGET_INTERVAL = 20; // Check every second (20 ticks)
+        private static final double TARGET_RANGE = 10.0D; // 10 block range
+
         public GuardianAttackHostilesGoal() {
-            super(ZombieGuardian.this, LivingEntity.class, 20, true, false,
+            super(ZombieGuardian.this, LivingEntity.class, 10, true, false,
                     entity -> entity instanceof Mob mob &&
                             isHostileMob(mob) &&
-                            !(entity instanceof ZombieGuardian));
+                            !(entity instanceof ZombieGuardian) &&
+                            ZombieGuardian.this.distanceToSqr(entity) <= (TARGET_RANGE * TARGET_RANGE));
+        }
+
+        @Override
+        public boolean canUse() {
+            // Always try to find targets if we don't have one
+            if (ZombieGuardian.this.getTarget() == null || !ZombieGuardian.this.getTarget().isAlive()) {
+                return super.canUse();
+            }
+            return false;
+        }
+
+        @Override
+        public boolean canContinueToUse() {
+            LivingEntity currentTarget = ZombieGuardian.this.getTarget();
+
+            // Stop if target is dead or too far
+            if (currentTarget == null || !currentTarget.isAlive()) {
+                return false;
+            }
+
+            // Stop if target is out of range
+            if (ZombieGuardian.this.distanceToSqr(currentTarget) > (TARGET_RANGE * TARGET_RANGE)) {
+                return false;
+            }
+
+            return super.canContinueToUse();
+        }
+
+        @Override
+        public void tick() {
+            super.tick();
+            retargetTimer++;
+
+            // Periodically search for new targets even while we have one
+            if (retargetTimer >= RETARGET_INTERVAL) {
+                retargetTimer = 0;
+
+                LivingEntity currentTarget = ZombieGuardian.this.getTarget();
+
+                // If current target is dead or invalid, find a new one immediately
+                if (currentTarget == null || !currentTarget.isAlive()) {
+                    this.findTarget();
+                }
+                // If current target is out of range, find closer target
+                else if (ZombieGuardian.this.distanceToSqr(currentTarget) > (TARGET_RANGE * TARGET_RANGE)) {
+                    this.findTarget();
+                }
+            }
         }
 
         @Override
         public void start() {
             super.start();
+            retargetTimer = 0;
         }
 
         @Override
         public void stop() {
-            super.stop();
-            ZombieGuardian.this.setTarget(null);
+            // DON'T clear the target here - let the goal system handle retargeting
+            // Clearing it prevents finding new targets
+            retargetTimer = 0;
         }
     }
 
@@ -689,23 +747,50 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
             }
         }
     }
-    @Override
-    public void tick() {
-        super.tick();
-
-        LivingEntity target = this.getTarget();
-
-        // Force retarget if target died
-        if (target != null && !target.isAlive()) {
-            this.setTarget(null);
-        }
-    }
 
     @Nullable
     @Override
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData) {
         spawnGroupData = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData);
         this.setBaby(false);
+
+        // Only clear equipment if NOT restoring from a Soul Cage
+        if (!restoringFromCage) {
+            this.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+            this.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+            this.setItemSlot(EquipmentSlot.LEGS, ItemStack.EMPTY);
+            this.setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
+            this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+            this.setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+        } else {
+            // Reset the flag so it doesn't affect future spawns
+            restoringFromCage = false;
+        }
+
         return spawnGroupData;
+    }
+
+
+    @Override
+    protected void dropCustomDeathLoot(ServerLevel level, DamageSource damageSource, boolean recentlyHit) {
+        super.dropCustomDeathLoot(level, damageSource, recentlyHit);
+
+        // Drop all equipped items
+        for (EquipmentSlot slot : EquipmentSlot.values()) {
+            ItemStack stack = this.getItemBySlot(slot);
+            if (!stack.isEmpty()) {
+                this.spawnAtLocation(stack);
+                this.setItemSlot(slot, ItemStack.EMPTY);
+            }
+        }
+
+        // Drop inventory items
+        GuardianInventory inventory = getGuardianInventory();
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            ItemStack stack = inventory.getItem(i);
+            if (!stack.isEmpty()) {
+                this.spawnAtLocation(stack);
+            }
+        }
     }
 }

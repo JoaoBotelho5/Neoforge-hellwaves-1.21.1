@@ -88,6 +88,11 @@ public class ActivatorBlock extends Block implements EntityBlock {
         return true;  // Use the shape to calculate light occlusion
     }
 
+    @Override
+    protected boolean isOcclusionShapeFullBlock(BlockState state, BlockGetter level, BlockPos pos) {
+        return true;  // Tell the game this block fully occludes adjacent faces
+    }
+
     // === END RENDERING FIXES ===
 
     @Nullable

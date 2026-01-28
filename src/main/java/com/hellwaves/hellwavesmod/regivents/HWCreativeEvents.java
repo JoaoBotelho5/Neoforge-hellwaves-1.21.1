@@ -7,7 +7,18 @@ public class HWCreativeEvents {
 
     public static void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
-            event.accept(HWDeferredRegister.ZOMBIE_GUARDIAN_SPAWN_EGG.get());
+            event.accept(HWDeferredRegister.ZOMBIE_GUARDIAN_SUMMONER.get());
+        }
+
+        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
+            event.accept(HWDeferredRegister.ACTIVATOR_BLOCK_ITEM.get());
+        }
+
+        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
+            event.accept(HWDeferredRegister.ELITE_ACTIVATOR_BLOCK_ITEM.get());
+        }
+        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(HWDeferredRegister.EMPTY_SOUL_CAGE.get());
         }
     }
 }
