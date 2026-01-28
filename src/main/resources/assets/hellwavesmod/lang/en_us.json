@@ -1,4 +1,5 @@
 {
   "block.hellwavesmod.activator_block": "Predatory Night Vortex",
-  "block.hellwavesmod.elite_activator_block": "Wastelands Vortex"
+  "block.hellwavesmod.elite_activator_block": "Wastelands Vortex",
+  "item.hellwavesmod.zombie_guardian_spawn_egg": "Zombie Guardian"
 }

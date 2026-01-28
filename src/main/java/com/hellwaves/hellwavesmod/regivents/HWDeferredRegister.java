@@ -6,6 +6,7 @@ import com.hellwaves.hellwavesmod.HWMobs.UndeadLord;
 import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
 import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
 import com.hellwaves.hellwavesmod.HellwavesMod;
+import com.hellwaves.hellwavesmod.Items.ZombieGuardianSummonerItem;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -97,6 +98,14 @@ public class HWDeferredRegister {
                     new Item.Properties()
             )
     );
+
+    public static final DeferredHolder<Item, Item> ZOMBIE_GUARDIAN_SUMMONER =
+            ITEMS.register("zombie_guardian_summoner",
+                    () -> new ZombieGuardianSummonerItem(
+                            new Item.Properties().stacksTo(16)
+                    )
+            );
+
 
 
     public static void registerAttributes(IEventBus modEventBus) {

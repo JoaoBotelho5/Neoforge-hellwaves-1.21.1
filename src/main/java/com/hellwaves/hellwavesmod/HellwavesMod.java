@@ -5,6 +5,7 @@ import com.hellwaves.hellwavesmod.Blocks.ModBlockEntities;
 import com.hellwaves.hellwavesmod.equipment.EquipmentConfig;
 import com.hellwaves.hellwavesmod.inventory.ModMenuTypes;
 import com.hellwaves.hellwavesmod.packets.Modpackets;
+import com.hellwaves.hellwavesmod.regivents.HWCreativeEvents;
 import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
 import com.hellwaves.hellwavesmod.regivents.HWEvents;
 import com.hellwaves.hellwavesmod.regivents.ZombieGuardianEvents;
@@ -34,6 +35,8 @@ public class HellwavesMod {
         NeoForge.EVENT_BUS.register(new HWEvents());
 
         NeoForge.EVENT_BUS.register(new ZombieGuardianEvents());
+
+        modBus.addListener(HWCreativeEvents::onBuildCreativeTab);
 
         ModMenuTypes.MENUS.register(modBus);
         System.out.println("[HELLWAVES] ModMenuTypes registered");
