@@ -23,7 +23,7 @@ public class GuardianTargeting {
             }
 
             // FIXED: Use a custom goal that continues searching for guardians
-            mob.targetSelector.addGoal(3, new PersistentGuardianTargetGoal(mob));
+            mob.targetSelector.addGoal(2, new PersistentGuardianTargetGoal(mob));
         }
     }
 
@@ -33,7 +33,14 @@ public class GuardianTargeting {
         private int retargetTimer = 0;
 
         public PersistentGuardianTargetGoal(Mob mob) {
-            super(mob, ZombieGuardian.class, 10, true, false, null);
+            super(
+                    mob,
+                    ZombieGuardian.class,
+                    10,
+                    true,
+                    false,
+                    target -> true // 🔴 ignora canAttackType
+            );
         }
 
         @Override

@@ -168,6 +168,12 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
         return false;
     }
 
+    @Override
+    protected boolean isSunSensitive() {
+        return false;
+    }
+
+
     private void consumeItems(Player player, ItemStack required) {
         int remaining = required.getCount();
         for (int i = 0; i < player.getInventory().getContainerSize() && remaining > 0; i++) {
@@ -246,7 +252,17 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
         this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
 
         this.targetSelector.addGoal(1, new GuardianHurtByTargetGoal());
-        this.targetSelector.addGoal(2, new GuardianAttackHostilesGoal());
+
+        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(
+                this, AbstractIllager.class, true));
+
+        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(
+                this, Vex.class, true));
+
+        this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(
+                this, Ravager.class, true));
+
+        this.targetSelector.addGoal(5, new GuardianAttackHostilesGoal());
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -671,6 +687,17 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
                     this.followingPlayer = player;
                 }
             }
+        }
+    }
+    @Override
+    public void tick() {
+        super.tick();
+
+        LivingEntity target = this.getTarget();
+
+        // Force retarget if target died
+        if (target != null && !target.isAlive()) {
+            this.setTarget(null);
         }
     }
 
