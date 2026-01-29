@@ -44,7 +44,7 @@ public class HWDeferredRegister {
                     .strength(-1.0f)
                     .requiresCorrectToolForDrops()
                     .isValidSpawn((state, level, pos, type) -> false)
-                    .forceSolidOn() // Force the block to be considered solid
+                    .noOcclusion() // Force the block to be considered solid
             )
     );
 
@@ -59,8 +59,7 @@ public class HWDeferredRegister {
                     .strength(-1.0f)
                     .requiresCorrectToolForDrops()
                     .isValidSpawn((state, level, pos, type) -> false)
-                    .forceSolidOn() // Force the block to be considered solid
-            )
+                    .noOcclusion()            )
     );
 
     public static final DeferredHolder<Item, BlockItem> ELITE_ACTIVATOR_BLOCK_ITEM = ITEMS.register(
