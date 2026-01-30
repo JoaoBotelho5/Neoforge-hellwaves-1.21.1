@@ -34,6 +34,7 @@ import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
 import java.util.EnumSet;
@@ -856,6 +857,9 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         private static final int NORMAL_DRAW_TIME = 20;
         private static final int FAST_DRAW_TIME = 5;
 
+        private int strafeTime = 0;
+        private boolean strafeLeft = true;
+
         public SafeRangedBowAttackGoal(T mob, double speedModifier, float attackRadius) {
             this.mob = mob;
             this.speedModifier = speedModifier;
@@ -878,35 +882,83 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         @Override
         public void tick() {
             LivingEntity target = mob.getTarget();
-            if (target == null || !target.isAlive()) return;
+            if (target == null || !target.isAlive()) {
+                // Stop using bow if target is gone or dead
+                if (mob.isUsingItem()) {
+                    pullingTicks = 0;
+                    mob.stopUsingItem();
+                    mob.setAggressive(false);
+                }
+                return;
+            }
 
-            // olhar para o target
+            double distanceSq = mob.distanceToSqr(target);
+            double attackRadiusSq = attackRadius * attackRadius;
+
+            // Look at target (head + body)
             mob.getLookControl().setLookAt(target, 30.0F, 30.0F);
-            mob.getNavigation().moveTo(target, speedModifier);
 
-            // countdown do ataque
+            // Initialize strafing vars
+            if (!mob.getPersistentData().contains("strafeDir")) mob.getPersistentData().putInt("strafeDir", 1);
+            if (!mob.getPersistentData().contains("strafeTime")) mob.getPersistentData().putInt("strafeTime", 0);
+
+            int strafeDir = mob.getPersistentData().getInt("strafeDir");
+            int strafeTime = mob.getPersistentData().getInt("strafeTime") + 1;
+
+            if (strafeTime >= 20) {
+                if (mob.getRandom().nextFloat() < 0.3F) strafeDir = -strafeDir;
+                strafeTime = 0;
+            }
+
+            mob.getPersistentData().putInt("strafeDir", strafeDir);
+            mob.getPersistentData().putInt("strafeTime", strafeTime);
+
+            // Move toward/away to stay inside attack range
+            if (distanceSq > attackRadiusSq) {
+                mob.getNavigation().moveTo(target, speedModifier * 0.5);
+            } else if (distanceSq < attackRadiusSq * 0.75) {
+                Vec3 away = new Vec3(mob.getX() - target.getX(), 0, mob.getZ() - target.getZ()).normalize().scale(0.1);
+                mob.setDeltaMovement(away.x, mob.getDeltaMovement().y, away.z);
+                mob.getNavigation().stop();
+            } else {
+                mob.getNavigation().stop();
+            }
+
+            // Lateral strafing
+            if (distanceSq <= attackRadiusSq) {
+                Vec3 toTarget = new Vec3(target.getX() - mob.getX(), 0, target.getZ() - mob.getZ()).normalize();
+                Vec3 strafeVec = new Vec3(-toTarget.z, 0, toTarget.x).scale(0.05 * strafeDir);
+                double newDistSq = mob.distanceToSqr(target.getX() + strafeVec.x, mob.getY(), target.getZ() + strafeVec.z);
+                if (newDistSq <= attackRadiusSq) {
+                    mob.setDeltaMovement(mob.getDeltaMovement().add(strafeVec));
+                }
+            }
+
+            // Attack cooldown
             if (attackCooldown > 0) {
                 attackCooldown--;
                 return;
             }
 
-            // iniciar uso do arco se não estiver puxando
+            // Start using bow if not already
             if (!mob.isUsingItem()) {
                 mob.startUsingItem(InteractionHand.MAIN_HAND);
-                mob.setAggressive(true); // MUITO IMPORTANTE: mantém o arco levantado
+                mob.setAggressive(true);
                 pullingTicks = 0;
             }
 
             pullingTicks++;
 
-            // tempo de puxar arco (rápido na 5ª flecha)
+            // === 5th-arrow FAST LOGIC ===
             int drawTime = NORMAL_DRAW_TIME;
-            if (mob instanceof SkeletonGuardian guardian && guardian.getGuardianLevel() >= 4 && guardian.arrowsFired % 5 == 4) {
+            if (mob instanceof SkeletonGuardian guardian &&
+                    guardian.getGuardianLevel() >= 4 &&
+                    guardian.arrowsFired % 5 == 4) {
                 drawTime = FAST_DRAW_TIME;
             }
 
-            // disparar quando puxado
-            if (pullingTicks >= drawTime) {
+            // Only shoot if target is still alive
+            if (pullingTicks >= drawTime && target.isAlive()) {
                 mob.performRangedAttack(target, 1.6F);
 
                 if (mob instanceof SkeletonGuardian guardian) {
@@ -914,8 +966,8 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
                 }
 
                 pullingTicks = 0;
-                mob.stopUsingItem(); // termina animação
-                mob.setAggressive(false); // desativa agressivo temporariamente
+                mob.stopUsingItem();
+                mob.setAggressive(false);
                 attackCooldown = 0;
             }
         }
@@ -927,8 +979,5 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
             mob.setAggressive(false);
         }
     }
-
-
-
 
 }
