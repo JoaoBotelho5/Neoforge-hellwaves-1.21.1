@@ -2,6 +2,7 @@ package com.hellwaves.hellwavesmod.HWMobs;
 
 import com.hellwaves.hellwavesmod.inventory.GuardianInventory;
 import com.hellwaves.hellwavesmod.inventory.GuardianInventoryMenu;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -48,6 +49,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         WANDER_AREA // Vaga pela área
     }
 
+    private BlockPos stayPosition = null;
     private GuardState currentState = GuardState.STAY;
     private Player followingPlayer = null;
     private int stateChangeCooldown = 0;
@@ -256,6 +258,10 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
             followingPlayer = player;
         }
 
+        if (currentState == GuardState.STAY) {
+            stayPosition = this.blockPosition(); // <-- CORRECT PLACE
+        }
+
         this.getNavigation().stop();
 
         String stateName = switch (currentState) {
@@ -264,7 +270,10 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
             case WANDER_AREA -> "§eWander";
         };
 
-        player.displayClientMessage(Component.literal("Guardian mode: " + stateName), true);
+        player.displayClientMessage(
+                Component.literal("Guardian mode: " + stateName),
+                true
+        );
 
         stateChangeCooldown = 20;
     }
@@ -275,9 +284,9 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new GuardianStayGoal());
-        this.goalSelector.addGoal(1, new GuardianFollowGoal());
-        this.goalSelector.addGoal(1, new GuardianWanderGoal());
+        this.goalSelector.addGoal(1, new GuardianStayGoal(1.0D));
+        this.goalSelector.addGoal(1, new GuardianFollowGoal(1.0D));
+        this.goalSelector.addGoal(1, new GuardianWanderGoal(0.8D));
         this.goalSelector.addGoal(2, new SafeRangedBowAttackGoal<>(this, 1.0D, 15.0F));
         this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.2D, false));
         this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
@@ -290,8 +299,8 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 20.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.18D) // Slower than default (same as ZombieGuardian)
-                .add(Attributes.ATTACK_DAMAGE, 4.0D)
+                .add(Attributes.MOVEMENT_SPEED, 0.25D) // Normal
+                .add(Attributes.ATTACK_DAMAGE, 6.0D)
                 .add(Attributes.ARMOR, 0.0D)
                 .add(Attributes.FOLLOW_RANGE, 32.0D);
     }
@@ -299,17 +308,15 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     // ===== AI GOAL CLASSES =====
 
     private class GuardianStayGoal extends Goal {
-        public GuardianStayGoal() {
+        private final double speed; // <-- speed configurável
+
+        public GuardianStayGoal(double speed) {
+            this.speed = speed;
             this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.JUMP));
         }
 
         @Override
         public boolean canUse() {
-            return currentState == GuardState.STAY && SkeletonGuardian.this.getTarget() == null;
-        }
-
-        @Override
-        public boolean canContinueToUse() {
             return currentState == GuardState.STAY && SkeletonGuardian.this.getTarget() == null;
         }
 
@@ -320,15 +327,36 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
 
         @Override
         public void tick() {
-            SkeletonGuardian.this.getNavigation().stop();
+            if (stayPosition == null) return;
+
+            double distSq = SkeletonGuardian.this.distanceToSqr(
+                    stayPosition.getX() + 0.5,
+                    stayPosition.getY(),
+                    stayPosition.getZ() + 0.5
+            );
+
+            if (distSq > 0.5D) {
+                SkeletonGuardian.this.getNavigation().moveTo(
+                        stayPosition.getX() + 0.5,
+                        stayPosition.getY(),
+                        stayPosition.getZ() + 0.5,
+                        speed // <-- usa speed do construtor
+                );
+            } else {
+                SkeletonGuardian.this.getNavigation().stop();
+            }
         }
     }
+
 
     private class GuardianFollowGoal extends Goal {
         private static final double FOLLOW_DISTANCE = 3.0D;
         private static final double TOO_FAR_DISTANCE = 10.0D;
 
-        public GuardianFollowGoal() {
+        private final double speed; // <-- velocidade configurável
+
+        public GuardianFollowGoal(double speed) {
+            this.speed = speed;
             this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.JUMP));
         }
 
@@ -366,7 +394,8 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
                         followingPlayer.getZ()
                 );
             } else if (distSq > (FOLLOW_DISTANCE * FOLLOW_DISTANCE)) {
-                SkeletonGuardian.this.getNavigation().moveTo(followingPlayer, 1.0D);
+                // <-- usa speed parametrizado aqui
+                SkeletonGuardian.this.getNavigation().moveTo(followingPlayer, speed);
             } else {
                 SkeletonGuardian.this.getNavigation().stop();
             }
@@ -378,10 +407,13 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         }
     }
 
+
     private class GuardianWanderGoal extends Goal {
         private static final double WANDER_RADIUS = 10.0D;
+        private final double speed; // <-- velocidade configurável
 
-        public GuardianWanderGoal() {
+        public GuardianWanderGoal(double speed) {
+            this.speed = speed;
             this.setFlags(EnumSet.of(Goal.Flag.MOVE));
         }
 
@@ -398,9 +430,11 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
             double randomY = SkeletonGuardian.this.getY();
             double randomZ = SkeletonGuardian.this.getZ() + (SkeletonGuardian.this.getRandom().nextDouble() * 2 - 1) * WANDER_RADIUS;
 
-            SkeletonGuardian.this.getNavigation().moveTo(randomX, randomY, randomZ, 1.0D);
+            // <-- usa speed parametrizado aqui
+            SkeletonGuardian.this.getNavigation().moveTo(randomX, randomY, randomZ, speed);
         }
     }
+
 
     private class GuardianHurtByTargetGoal extends HurtByTargetGoal {
         public GuardianHurtByTargetGoal() {
@@ -555,13 +589,28 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
             this.setLastHurtByMob(null);
         }
 
+        // ---- COMBAT TRANSITION LOGIC ----
+        boolean inCombat = this.getTarget() != null;
+
+        if (wasInCombat && !inCombat) {
+            // combat just ended
+            if (currentState == GuardState.STAY && stayPosition != null) {
+                this.getNavigation().moveTo(
+                        stayPosition.getX() + 0.5,
+                        stayPosition.getY(),
+                        stayPosition.getZ() + 0.5,
+                        1.0D
+                );
+            }
+        }
+
+        wasInCombat = inCombat;
+        // --------------------------------
+
         handleRegeneration();
         findNearbyHostileTarget(); // optional
     }
 
-
-
-    // Evita que o skeleton pegue fogo ao sol
     @Override
     protected boolean isSunBurnTick() {
         return false;
@@ -752,6 +801,9 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     public void addAdditionalSaveData(CompoundTag compound) {
         super.addAdditionalSaveData(compound);
         compound.putInt("GuardState", currentState.ordinal());
+        if (stayPosition != null) {
+            compound.putLong("StayPos", stayPosition.asLong());
+        }
         compound.putInt("StateChangeCooldown", stateChangeCooldown);
         compound.putInt("RegenTimer", regenTimer);
         compound.putInt("GuardianLevel", guardianLevel);
@@ -767,6 +819,11 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         if (compound.contains("GuardState")) {
             currentState = GuardState.values()[compound.getInt("GuardState")];
         }
+
+        if (compound.contains("StayPos")) {
+            stayPosition = BlockPos.of(compound.getLong("StayPos"));
+        }
+
         if (compound.contains("StateChangeCooldown")) {
             stateChangeCooldown = compound.getInt("StateChangeCooldown");
         }

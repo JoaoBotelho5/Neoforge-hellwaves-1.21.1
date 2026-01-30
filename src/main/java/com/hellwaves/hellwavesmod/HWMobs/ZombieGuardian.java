@@ -2,6 +2,7 @@ package com.hellwaves.hellwavesmod.HWMobs;
 
 import com.hellwaves.hellwavesmod.inventory.GuardianInventory;
 import com.hellwaves.hellwavesmod.inventory.GuardianInventoryMenu;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -45,7 +46,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         FOLLOW,     // Segue o jogador
         WANDER_AREA // Vaga pela área
     }
-
+    private BlockPos stayPosition = null;
     private GuardState currentState = GuardState.STAY; // Start in STAY mode
     private Player followingPlayer = null;
     private int stateChangeCooldown = 0;
@@ -249,6 +250,10 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         if (currentState == GuardState.FOLLOW) {
             followingPlayer = player;
         }
+        if (currentState == ZombieGuardian.GuardState.STAY) {
+            stayPosition = this.blockPosition(); // <-- CORRECT PLACE
+        }
+
 
         this.getNavigation().stop();
 
@@ -282,8 +287,8 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 30.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.18D) // Slower than default (0.25D -> 0.18D)
-                .add(Attributes.ATTACK_DAMAGE, 5.0D)
+                .add(Attributes.MOVEMENT_SPEED, 0.20D) // Slower than default (0.25D -> 0.18D)
+                .add(Attributes.ATTACK_DAMAGE, 4.00)
                 .add(Attributes.ARMOR, 2.0D)
                 .add(Attributes.FOLLOW_RANGE, 32.0D)
                 .add(Attributes.SPAWN_REINFORCEMENTS_CHANCE, 0.0D); // Required for proper entity loading
@@ -331,6 +336,22 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
                 findNearbyHostileTarget();
             }
         }
+        // ---- COMBAT TRANSITION LOGIC ----
+        boolean inCombat = this.getTarget() != null;
+
+        if (wasInCombat && !inCombat) {
+            // combat just ended
+            if (currentState == ZombieGuardian.GuardState.STAY && stayPosition != null) {
+                this.getNavigation().moveTo(
+                        stayPosition.getX() + 0.5,
+                        stayPosition.getY(),
+                        stayPosition.getZ() + 0.5,
+                        1.0D
+                );
+            }
+        }
+        wasInCombat = inCombat;
+
     }
 
     private void findNearbyHostileTarget() {
@@ -637,6 +658,31 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         public void start() {
             ZombieGuardian.this.getNavigation().stop();
         }
+        @Override
+        public void tick() {
+            if (stayPosition == null) {
+                ZombieGuardian.this.getNavigation().stop();
+                return;
+            }
+
+            double distSq = ZombieGuardian.this.distanceToSqr(
+                    stayPosition.getX() + 0.5,
+                    stayPosition.getY(),
+                    stayPosition.getZ() + 0.5
+            );
+
+            if (distSq > 0.5D) {
+                ZombieGuardian.this.getNavigation().moveTo(
+                        stayPosition.getX() + 0.5,
+                        stayPosition.getY(),
+                        stayPosition.getZ() + 0.5,
+                        1.0D
+                );
+            } else {
+                ZombieGuardian.this.getNavigation().stop();
+            }
+        }
+
     }
 
     private class GuardianWanderGoal extends WaterAvoidingRandomStrollGoal {
@@ -811,6 +857,9 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     public void addAdditionalSaveData(CompoundTag compound) {
         super.addAdditionalSaveData(compound);
         compound.putInt("GuardState", currentState.ordinal());
+        if (stayPosition != null) {
+            compound.putLong("StayPos", stayPosition.asLong());
+        }
         compound.putInt("StateChangeCooldown", stateChangeCooldown);
         compound.putInt("RegenTimer", regenTimer);
         compound.putInt("GuardianLevel", guardianLevel);
@@ -827,6 +876,11 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         if (compound.contains("GuardState")) {
             currentState = GuardState.values()[compound.getInt("GuardState")];
         }
+
+        if (compound.contains("StayPos")) {
+            stayPosition = BlockPos.of(compound.getLong("StayPos"));
+        }
+
         if (compound.contains("StateChangeCooldown")) {
             stateChangeCooldown = compound.getInt("StateChangeCooldown");
         }
