@@ -23,6 +23,7 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class SoulCageItem extends Item {
@@ -116,5 +117,38 @@ public class SoulCageItem extends Item {
         return InteractionResult.SUCCESS; // <- changed from CONSUME
     }
 
-    // everything else untouched
+    @Override
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
+
+        var customData = stack.get(DataComponents.CUSTOM_DATA);
+        if (customData != null) {
+            var cageData = customData.copyTag();
+
+            // Tipo de Guardian
+            if (cageData.contains("GuardianType")) {
+                String type = cageData.getString("GuardianType");
+                String displayType = switch (type) {
+                    case "hellwavesmod:zombie_guardian" -> "Zombie Guardian";
+                    case "hellwavesmod:skeleton_guardian" -> "Skeleton Guardian";
+                    default -> "Unknown Guardian";
+                };
+                tooltip.add(Component.literal("Type: §b" + displayType));
+            }
+
+            // Vida atual / máxima
+            float health = cageData.contains("Health") ? cageData.getFloat("Health") : 0f;
+            float maxHealth = cageData.contains("MaxHealth") ? cageData.getFloat("MaxHealth") : 0f;
+            if (health > 0 && maxHealth > 0) {
+                tooltip.add(Component.literal(String.format("Health: §c%.1f§r / §a%.1f", health, maxHealth)));
+            }
+
+            // Nível
+            int guardianLevel = cageData.contains("GuardianLevel") ? cageData.getInt("GuardianLevel") : 1;
+            tooltip.add(Component.literal("Level: §e" + guardianLevel));
+        } else {
+            tooltip.add(Component.literal("§7Empty Soul Cage"));
+        }
+    }
+
 }
