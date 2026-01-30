@@ -202,18 +202,28 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     }
 
     private void applyLevelBonuses(int oldLevel, int newLevel) {
-        if (newLevel == 3) {
+        if (newLevel >= 2) {
+            // Level 2: max health increase + regen boost
             var maxHealthAttr = this.getAttribute(Attributes.MAX_HEALTH);
             if (maxHealthAttr != null) {
-                double currentMax = maxHealthAttr.getBaseValue();
-                maxHealthAttr.setBaseValue(currentMax + 10.0D);
+                maxHealthAttr.setBaseValue(40.0D); // Set max HP to 40
                 this.setHealth(40.0F);
             }
+            // Regen is handled automatically in getRegenAmount():
+            // getRegenAmount() returns 2.0F for level >= 2
         }
 
-        if (newLevel == 4) {
+        if (newLevel >= 3) {
+            // Level 3: Damage Resistance I
             this.removeEffect(MobEffects.DAMAGE_RESISTANCE);
             this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 999999, 0, false, false));
+        }
+
+        if (newLevel >= 4) {
+            // Level 4: Shield blocking (already handled in hurt())
+        }
+        if (newLevel >= 5) {
+            // Level 5: handled in
         }
     }
 
@@ -481,10 +491,6 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         double horizontalDistance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
 
         arrow.shoot(deltaX, deltaY + horizontalDistance * 0.20000000298023224D, deltaZ, 1.6F, 14.0F);
-
-        if (guardianLevel >= 2) {
-            arrow.setBaseDamage(arrow.getBaseDamage() + (guardianLevel - 1) * 0.5D);
-        }
 
         this.level().addFreshEntity(arrow);
         this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
@@ -755,8 +761,8 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
             return false;
         }
 
-        // Level 5: 50% chance to block damage with shield (no durability loss)
-        if (guardianLevel >= 5) {
+        // Level 4: 50% chance to block damage with shield (no durability loss)
+        if (guardianLevel >= 4) {
             ItemStack offhandStack = this.getItemBySlot(EquipmentSlot.OFFHAND);
             if (offhandStack.getItem() instanceof ShieldItem) {
                 if (this.getRandom().nextFloat() < 0.35F) {
@@ -774,7 +780,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         LivingEntity target = this.getTarget();
         if (target != null && !target.isAlive()) {
             justKilledMob = true;
-            slideAllowedTimer = 100; // 5 seconds
+            slideAllowedTimer = 20; // 1 seconds
         }
 
         return result;
