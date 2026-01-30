@@ -28,6 +28,7 @@ import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
@@ -54,7 +55,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     // Leveling System
     private int guardianLevel = 1;
     private static final int MAX_LEVEL = 5;
-
+    private int arrowsFired = 0;
     // Regeneração natural
     private int regenTimer = 0;
     private boolean wasInCombat = false;
@@ -278,7 +279,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         this.goalSelector.addGoal(1, new GuardianStayGoal());
         this.goalSelector.addGoal(1, new GuardianFollowGoal());
         this.goalSelector.addGoal(1, new GuardianWanderGoal());
-        this.goalSelector.addGoal(2, new SafeRangedBowAttackGoal<>(this, 1.0D, 20, 15.0F));
+        this.goalSelector.addGoal(2, new SafeRangedBowAttackGoal<>(this, 1.0D, 15.0F));
         this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.2D, false));
         this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
@@ -682,34 +683,46 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     public void performRangedAttack(LivingEntity target, float velocity) {
         if (target == null || !target.isAlive()) return;
 
-        ItemStack bowStack = this.getItemInHand(
-                ProjectileUtil.getWeaponHoldingHand(this, Items.BOW)
-        );
+        ItemStack bowStack = this.getItemInHand(ProjectileUtil.getWeaponHoldingHand(this, Items.BOW));
+        if (bowStack.isEmpty()) return;
 
-        ItemStack arrowStack = this.getProjectile(bowStack);
-        AbstractArrow arrow = this.getArrow(arrowStack, velocity, bowStack);
+        ItemStack arrowStack;
 
+        if (guardianLevel >= 5) {
+            // Nível 5: usar flecha da offhand se houver
+            ItemStack offhand = this.getItemBySlot(EquipmentSlot.OFFHAND);
+            if (offhand.getItem() instanceof ArrowItem) {
+                arrowStack = offhand;
+            } else {
+                arrowStack = new ItemStack(Items.ARROW); // fallback: flecha normal
+            }
+        } else {
+            // Níveis 1-4: sempre flecha normal sem efeitos
+            arrowStack = new ItemStack(Items.ARROW);
+        }
+
+        // Cria a flecha propriamente dita usando o método oficial
+        AbstractArrow arrow = ((ArrowItem) arrowStack.getItem()).createArrow(this.level(), arrowStack, this, bowStack);
+
+        // Disparo
         double dx = target.getX() - this.getX();
-        double dy = target.getY(0.3333333333333333D) - arrow.getY();
+        double dy = target.getY(0.3333D) - arrow.getY();
         double dz = target.getZ() - this.getZ();
-        double d = Math.sqrt(dx * dx + dz * dz);
+        double distance = Math.sqrt(dx * dx + dz * dz);
 
-        arrow.shoot(
-                dx,
-                dy + d * 0.20000000298023224D,
-                dz,
-                1.6F,
-                (float)(14 - this.level().getDifficulty().getId() * 4)
-        );
+        arrow.shoot(dx, dy + distance * 0.2D, dz, 1.6F, (float)(14 - this.level().getDifficulty().getId() * 4));
 
-        this.playSound(
-                SoundEvents.SKELETON_SHOOT,
-                1.0F,
-                1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F)
-        );
+        this.playSound(SoundEvents.SKELETON_SHOOT,
+                1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
 
         this.level().addFreshEntity(arrow);
+
+        // Level 4: fast 5th arrow
+        if (guardianLevel >= 4) arrowsFired++;
     }
+
+
+
 
 
     // ===== SOUNDS =====
@@ -832,57 +845,90 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         }
     }
 
-    public class SafeRangedBowAttackGoal<T extends Monster & RangedAttackMob> extends RangedBowAttackGoal<T> {
+    public class SafeRangedBowAttackGoal<T extends Monster & RangedAttackMob> extends Goal {
 
-        private final T mob; // Guarda a referência ao mob
+        private final T mob;
+        private int attackCooldown = 0;
+        private int pullingTicks = 0;
+        private final double speedModifier;
+        private final float attackRadius;
 
-        public SafeRangedBowAttackGoal(T mob, double speedModifier, int attackIntervalMin, float attackRadius) {
-            super(mob, speedModifier, attackIntervalMin, attackRadius);
-            this.mob = mob; // inicializa
+        private static final int NORMAL_DRAW_TIME = 20;
+        private static final int FAST_DRAW_TIME = 5;
+
+        public SafeRangedBowAttackGoal(T mob, double speedModifier, float attackRadius) {
+            this.mob = mob;
+            this.speedModifier = speedModifier;
+            this.attackRadius = attackRadius;
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
         }
 
         @Override
         public boolean canUse() {
-            LivingEntity target = this.mob.getTarget();
-            if (target == null || !target.isAlive()) {
-                return false;
-            }
-
-            return super.canUse();
+            LivingEntity target = mob.getTarget();
+            return target != null && target.isAlive() && mob.getMainHandItem().getItem() instanceof BowItem;
         }
 
         @Override
         public boolean canContinueToUse() {
-            LivingEntity target = this.mob.getTarget();
-
-            if (target == null || !target.isAlive()) {
-                return false; // ISTO É O CRÍTICO
-            }
-
-            return super.canContinueToUse();
+            LivingEntity target = mob.getTarget();
+            return target != null && target.isAlive() && mob.getMainHandItem().getItem() instanceof BowItem;
         }
 
         @Override
         public void tick() {
             LivingEntity target = mob.getTarget();
-            if (target == null || !target.isAlive()) {
-                mob.setTarget(null);
+            if (target == null || !target.isAlive()) return;
 
-                // Reset internal timers e animação
-                mob.setAggressive(false);
-                this.stop();
+            // olhar para o target
+            mob.getLookControl().setLookAt(target, 30.0F, 30.0F);
+            mob.getNavigation().moveTo(target, speedModifier);
 
-                try {
-                    java.lang.reflect.Field attackTickField = RangedBowAttackGoal.class.getDeclaredField("attackTime");
-                    attackTickField.setAccessible(true);
-                    attackTickField.setInt(this, 0); // reset attack timer
-                } catch (Exception ignored) {}
-
+            // countdown do ataque
+            if (attackCooldown > 0) {
+                attackCooldown--;
                 return;
             }
 
-            super.tick();
+            // iniciar uso do arco se não estiver puxando
+            if (!mob.isUsingItem()) {
+                mob.startUsingItem(InteractionHand.MAIN_HAND);
+                mob.setAggressive(true); // MUITO IMPORTANTE: mantém o arco levantado
+                pullingTicks = 0;
+            }
+
+            pullingTicks++;
+
+            // tempo de puxar arco (rápido na 5ª flecha)
+            int drawTime = NORMAL_DRAW_TIME;
+            if (mob instanceof SkeletonGuardian guardian && guardian.getGuardianLevel() >= 4 && guardian.arrowsFired % 5 == 4) {
+                drawTime = FAST_DRAW_TIME;
+            }
+
+            // disparar quando puxado
+            if (pullingTicks >= drawTime) {
+                mob.performRangedAttack(target, 1.6F);
+
+                if (mob instanceof SkeletonGuardian guardian) {
+                    guardian.arrowsFired++;
+                }
+
+                pullingTicks = 0;
+                mob.stopUsingItem(); // termina animação
+                mob.setAggressive(false); // desativa agressivo temporariamente
+                attackCooldown = 0;
+            }
+        }
+
+        @Override
+        public void stop() {
+            pullingTicks = 0;
+            mob.stopUsingItem();
+            mob.setAggressive(false);
         }
     }
+
+
+
 
 }

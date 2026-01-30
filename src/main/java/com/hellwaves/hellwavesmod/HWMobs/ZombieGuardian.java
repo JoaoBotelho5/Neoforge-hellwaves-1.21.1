@@ -29,6 +29,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.item.*;
+import net.minecraft.world.item.ShieldItem;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.phys.AABB;
@@ -66,6 +67,10 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     private static final float AOE_DAMAGE = 3.0F;
     private int aoeCooldownTimer = 0;
     private boolean wasInCombat = false;
+
+    // Sliding control - prevent slide when using bow, allow after kill
+    private boolean justKilledMob = false;
+    private int slideAllowedTimer = 0;
 
     // Flag to prevent equipment clearing when restoring from cage
     private boolean restoringFromCage = false;
@@ -288,6 +293,14 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         if (!this.level().isClientSide()) {
             if (stateChangeCooldown > 0) {
                 stateChangeCooldown--;
+            }
+
+            // Countdown slide timer
+            if (slideAllowedTimer > 0) {
+                slideAllowedTimer--;
+                if (slideAllowedTimer == 0) {
+                    justKilledMob = false;
+                }
             }
             if (aoeCooldownTimer > 0) {
                 aoeCooldownTimer--;
@@ -529,6 +542,15 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
                 this.stop();
                 return;
             }
+
+            // Prevent sliding when using bow (unless just killed a mob)
+            if (!justKilledMob) {
+                // Stop navigation when shooting
+                if (ZombieGuardian.this.isAggressive()) {
+                    ZombieGuardian.this.getNavigation().stop();
+                }
+            }
+
             super.tick();
         }
     }
@@ -732,8 +754,32 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         if (source.getEntity() instanceof ZombieGuardian) {
             return false;
         }
-        return super.hurt(source, amount);
+
+        // Level 5: 50% chance to block damage with shield (no durability loss)
+        if (guardianLevel >= 5) {
+            ItemStack offhandStack = this.getItemBySlot(EquipmentSlot.OFFHAND);
+            if (offhandStack.getItem() instanceof ShieldItem) {
+                if (this.getRandom().nextFloat() < 0.5F) {
+                    // Block the damage - play shield sound
+                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
+                            SoundEvents.SHIELD_BLOCK, this.getSoundSource(), 1.0F, 1.0F);
+                    return false; // Damage blocked
+                }
+            }
+        }
+
+        boolean result = super.hurt(source, amount);
+
+        // Check if target died from our attack - enable sliding
+        LivingEntity target = this.getTarget();
+        if (target != null && !target.isAlive()) {
+            justKilledMob = true;
+            slideAllowedTimer = 100; // 5 seconds
+        }
+
+        return result;
     }
+
 
     @Override
     protected SoundEvent getAmbientSound() {
