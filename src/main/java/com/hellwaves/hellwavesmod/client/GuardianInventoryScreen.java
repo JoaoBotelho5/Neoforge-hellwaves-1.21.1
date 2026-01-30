@@ -283,18 +283,18 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
             return switch (currentLevel) {
                 case 1 -> new ItemStack(net.minecraft.world.item.Items.GOLD_BLOCK, 1);
                 case 2 -> new ItemStack(net.minecraft.world.item.Items.EMERALD_BLOCK, 1);
-                case 3 -> new ItemStack(net.minecraft.world.item.Items.NETHERITE_INGOT, 2);
-                case 4 -> new ItemStack(net.minecraft.world.item.Items.NETHER_STAR, 1);
+                case 3 -> new ItemStack(net.minecraft.world.item.Items.ENDER_EYE, 1);
+                case 4 -> new ItemStack(net.minecraft.world.item.Items.NAUTILUS_SHELL, 1);
                 default -> ItemStack.EMPTY;
             };
         }
 
         // Default to Zombie Guardian costs
         return switch (currentLevel) {
-            case 1 -> new ItemStack(net.minecraft.world.item.Items.BOOK, 5);
+            case 1 -> new ItemStack(net.minecraft.world.item.Items.BOOK, 10);
             case 2 -> new ItemStack(net.minecraft.world.item.Items.DIAMOND_BLOCK, 1);
             case 3 -> new ItemStack(net.minecraft.world.item.Items.NETHERITE_SCRAP, 1);
-            case 4 -> new ItemStack(net.minecraft.world.item.Items.NETHER_STAR, 1);
+            case 4 -> new ItemStack(net.minecraft.world.item.Items.WITHER_SKELETON_SKULL, 1);
             default -> ItemStack.EMPTY;
         };
     }

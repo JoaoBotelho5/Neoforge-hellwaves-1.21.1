@@ -73,7 +73,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         super(entityType, level);
         this.setCustomName(Component.literal("§7Skeleton Guardian§r"));
         this.setCustomNameVisible(true);
-        this.xpReward = 50;
+        this.xpReward = 0;
     }
 
     @Override
@@ -145,8 +145,8 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         return switch (guardianLevel) {
             case 1 -> new ItemStack(Items.GOLD_BLOCK, 1);      // Different from Zombie's BOOK
             case 2 -> new ItemStack(Items.EMERALD_BLOCK, 1);   // Different from Zombie's DIAMOND_BLOCK
-            case 3 -> new ItemStack(Items.NETHERITE_INGOT, 2); // Different from Zombie's NETHERITE_SCRAP
-            case 4 -> new ItemStack(Items.NETHER_STAR, 1);     // Same as Zombie
+            case 3 -> new ItemStack(Items.ENDER_EYE, 1); // Different from Zombie's NETHERITE_SCRAP
+            case 4 -> new ItemStack(Items.NAUTILUS_SHELL, 1);     // Same as Zombie
             default -> ItemStack.EMPTY;
         };
     }

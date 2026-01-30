@@ -80,7 +80,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         super(entityType, level);
         this.setCustomName(Component.literal("§2Zombie Guardian§r"));
         this.setCustomNameVisible(true);
-        this.xpReward = 50;
+        this.xpReward = 0;
     }
 
     @Override
@@ -139,10 +139,10 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
 
     public ItemStack getUpgradeCost() {
         return switch (guardianLevel) {
-            case 1 -> new ItemStack(Items.BOOK, 5);
+            case 1 -> new ItemStack(Items.BOOK, 10);
             case 2 -> new ItemStack(Items.DIAMOND_BLOCK, 1);
             case 3 -> new ItemStack(Items.NETHERITE_SCRAP, 1);
-            case 4 -> new ItemStack(Items.NETHER_STAR, 1);
+            case 4 -> new ItemStack(Items.WITHER_SKELETON_SKULL, 1);
             default -> ItemStack.EMPTY;
         };
     }
@@ -273,9 +273,9 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new GuardianStayGoal());
-        this.goalSelector.addGoal(1, new GuardianFollowGoal());
-        this.goalSelector.addGoal(1, new GuardianWanderGoal());
+        this.goalSelector.addGoal(1, new GuardianStayGoal(1.1D));
+        this.goalSelector.addGoal(1, new GuardianFollowGoal(1.1D));
+        this.goalSelector.addGoal(1, new GuardianWanderGoal(1.1D));
         this.goalSelector.addGoal(2, new GuardianRangedBowAttackGoal<>(this, 1.0D, 20, 15.0F));
         this.goalSelector.addGoal(3, new GuardianMeleeAttackGoal());
         this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
@@ -305,37 +305,22 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     public void aiStep() {
         super.aiStep();
 
-        if (!this.level().isClientSide()) {
-            if (stateChangeCooldown > 0) {
-                stateChangeCooldown--;
-            }
-
-            // Countdown slide timer
-            if (slideAllowedTimer > 0) {
-                slideAllowedTimer--;
-                if (slideAllowedTimer == 0) {
-                    justKilledMob = false;
-                }
-            }
-            if (aoeCooldownTimer > 0) {
-                aoeCooldownTimer--;
-            }
-
-            handleRegeneration();
-
-            if (guardianLevel >= 5) {
-                handleAOEAbility();
-            }
-
-            updateWeapon();
-
-            // FORCE retargeting every tick if no target
-            LivingEntity currentTarget = this.getTarget();
-            if (currentTarget == null || !currentTarget.isAlive()) {
-                // Manually search for nearby hostile mobs
-                findNearbyHostileTarget();
-            }
+        if (stateChangeCooldown > 0) {
+            stateChangeCooldown--;
         }
+
+        // Clear dead target
+        LivingEntity target = this.getTarget();
+        if (target != null && !target.isAlive()) {
+            this.setTarget(null);
+        }
+
+        // Clear dead lastHurtByMob
+        LivingEntity last = this.getLastHurtByMob();
+        if (last != null && !last.isAlive()) {
+            this.setLastHurtByMob(null);
+        }
+
         // ---- COMBAT TRANSITION LOGIC ----
         boolean inCombat = this.getTarget() != null;
 
@@ -350,16 +335,26 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
                 );
             }
         }
-        wasInCombat = inCombat;
 
+        wasInCombat = inCombat;
+        // --------------------------------
+
+        handleRegeneration();
+        findNearbyHostileTarget(); // optional
+
+        if (guardianLevel >= 5) {
+            handleAOEAbility();
+        }
     }
 
     private void findNearbyHostileTarget() {
+        // Não sobrescrever o target se já houver player ou guardian alvo
+        if (this.getTarget() instanceof Player || this.getTarget() instanceof ZombieGuardian) return;
+
         double range = 10.0D;
-        AABB searchBox = this.getBoundingBox().inflate(range);
         List<LivingEntity> nearbyMobs = this.level().getEntitiesOfClass(
                 LivingEntity.class,
-                searchBox,
+                this.getBoundingBox().inflate(range),
                 entity -> entity instanceof Mob mob &&
                         isHostileMob(mob) &&
                         !(entity instanceof ZombieGuardian) &&
@@ -369,24 +364,15 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         );
 
         if (!nearbyMobs.isEmpty()) {
-            // Find closest hostile
-            LivingEntity closest = null;
-            double closestDist = Double.MAX_VALUE;
-
-            for (LivingEntity mob : nearbyMobs) {
-                double dist = this.distanceToSqr(mob);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closest = mob;
-                }
-            }
-
+            LivingEntity closest = nearbyMobs.stream()
+                    .min((a, b) -> Double.compare(this.distanceToSqr(a), this.distanceToSqr(b)))
+                    .orElse(null);
             if (closest != null) {
                 this.setTarget(closest);
-                System.out.println("[GUARDIAN] Manually set target: " + closest);
             }
         }
     }
+
 
     private void handleRegeneration() {
         boolean inCombat = this.getTarget() != null;
@@ -607,13 +593,19 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     }
 
     private class GuardianFollowGoal extends Goal {
-        public GuardianFollowGoal() {
-            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
+        private static final double FOLLOW_DISTANCE = 1.5D;
+        private static final double TOO_FAR_DISTANCE = 10.0D;
+
+        private final double speed; // <-- velocidade configurável
+
+        public GuardianFollowGoal(double speed) {
+            this.speed = speed;
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.JUMP));
         }
 
         @Override
         public boolean canUse() {
-            return currentState == GuardState.FOLLOW &&
+            return currentState == ZombieGuardian.GuardState.FOLLOW &&
                     followingPlayer != null &&
                     followingPlayer.isAlive() &&
                     ZombieGuardian.this.getTarget() == null;
@@ -621,36 +613,9 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
 
         @Override
         public boolean canContinueToUse() {
-            return currentState == GuardState.FOLLOW &&
+            return currentState == ZombieGuardian.GuardState.FOLLOW &&
                     followingPlayer != null &&
                     followingPlayer.isAlive() &&
-                    ZombieGuardian.this.getTarget() == null &&
-                    ZombieGuardian.this.distanceToSqr(followingPlayer) > 4.0D;
-        }
-
-        @Override
-        public void tick() {
-            if (followingPlayer != null && followingPlayer.isAlive()) {
-                ZombieGuardian.this.getNavigation().moveTo(followingPlayer, 1.2D);
-                ZombieGuardian.this.getLookControl().setLookAt(followingPlayer, 10.0F, 5.0F);
-            }
-        }
-    }
-
-    private class GuardianStayGoal extends Goal {
-        public GuardianStayGoal() {
-            this.setFlags(EnumSet.of(Goal.Flag.MOVE));
-        }
-
-        @Override
-        public boolean canUse() {
-            return currentState == GuardState.STAY &&
-                    ZombieGuardian.this.getTarget() == null;
-        }
-
-        @Override
-        public boolean canContinueToUse() {
-            return currentState == GuardState.STAY &&
                     ZombieGuardian.this.getTarget() == null;
         }
 
@@ -658,12 +623,54 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         public void start() {
             ZombieGuardian.this.getNavigation().stop();
         }
+
         @Override
         public void tick() {
-            if (stayPosition == null) {
+            if (followingPlayer == null) return;
+
+            double distSq = ZombieGuardian.this.distanceToSqr(followingPlayer);
+
+            if (distSq > (TOO_FAR_DISTANCE * TOO_FAR_DISTANCE)) {
+                ZombieGuardian.this.teleportTo(
+                        followingPlayer.getX(),
+                        followingPlayer.getY(),
+                        followingPlayer.getZ()
+                );
+            } else if (distSq > (FOLLOW_DISTANCE * FOLLOW_DISTANCE)) {
+                // <-- usa speed parametrizado aqui
+                ZombieGuardian.this.getNavigation().moveTo(followingPlayer, speed);
+            } else {
                 ZombieGuardian.this.getNavigation().stop();
-                return;
             }
+        }
+
+        @Override
+        public void stop() {
+            ZombieGuardian.this.getNavigation().stop();
+        }
+    }
+
+    private class GuardianStayGoal extends Goal {
+        private final double speed; // <-- speed configurável
+
+        public GuardianStayGoal(double speed) {
+            this.speed = speed;
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.JUMP));
+        }
+
+        @Override
+        public boolean canUse() {
+            return currentState == ZombieGuardian.GuardState.STAY && ZombieGuardian.this.getTarget() == null;
+        }
+
+        @Override
+        public void start() {
+            ZombieGuardian.this.getNavigation().stop();
+        }
+
+        @Override
+        public void tick() {
+            if (stayPosition == null) return;
 
             double distSq = ZombieGuardian.this.distanceToSqr(
                     stayPosition.getX() + 0.5,
@@ -676,25 +683,38 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
                         stayPosition.getX() + 0.5,
                         stayPosition.getY(),
                         stayPosition.getZ() + 0.5,
-                        1.0D
+                        speed // <-- usa speed do construtor
                 );
             } else {
                 ZombieGuardian.this.getNavigation().stop();
             }
         }
-
     }
 
-    private class GuardianWanderGoal extends WaterAvoidingRandomStrollGoal {
-        public GuardianWanderGoal() {
-            super(ZombieGuardian.this, 1.0D);
+    private class GuardianWanderGoal extends Goal {
+        private static final double WANDER_RADIUS = 10.0D;
+        private final double speed; // <-- velocidade configurável
+
+        public GuardianWanderGoal(double speed) {
+            this.speed = speed;
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE));
         }
 
         @Override
         public boolean canUse() {
-            return currentState == GuardState.WANDER_AREA &&
+            return currentState == ZombieGuardian.GuardState.WANDER_AREA &&
                     ZombieGuardian.this.getTarget() == null &&
-                    super.canUse();
+                    ZombieGuardian.this.getRandom().nextInt(120) == 0;
+        }
+
+        @Override
+        public void start() {
+            double randomX = ZombieGuardian.this.getX() + (ZombieGuardian.this.getRandom().nextDouble() * 2 - 1) * WANDER_RADIUS;
+            double randomY = ZombieGuardian.this.getY();
+            double randomZ = ZombieGuardian.this.getZ() + (ZombieGuardian.this.getRandom().nextDouble() * 2 - 1) * WANDER_RADIUS;
+
+            // <-- usa speed parametrizado aqui
+            ZombieGuardian.this.getNavigation().moveTo(randomX, randomY, randomZ, speed);
         }
     }
 
@@ -721,7 +741,6 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         private static final double TARGET_RANGE = 10.0D;
 
         public GuardianAttackHostilesGoal() {
-            // Reduced check interval (10 instead of 20) = checks twice per second
             super(ZombieGuardian.this, LivingEntity.class, 10, true, false,
                     entity -> {
                         if (!(entity instanceof Mob mob)) return false;
@@ -737,51 +756,45 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
 
         @Override
         public boolean canUse() {
-            // ALWAYS try to find a target if we don't have one or current is dead
+            // Always try to find a target within range, even while wandering or following
             LivingEntity currentTarget = ZombieGuardian.this.getTarget();
-            if (currentTarget == null || !currentTarget.isAlive()) {
-                boolean found = super.canUse();
-                if (found) {
-                    System.out.println("[GUARDIAN] Found new target: " + ZombieGuardian.this.getTarget());
-                }
-                return found;
+
+            if (currentTarget == null || !currentTarget.isAlive() || ZombieGuardian.this.distanceToSqr(currentTarget) > TARGET_RANGE * TARGET_RANGE) {
+                return super.canUse();
             }
-            return false;
+
+            return true; // Keep using current target
         }
 
         @Override
         public boolean canContinueToUse() {
             LivingEntity currentTarget = ZombieGuardian.this.getTarget();
 
-            // If no target or dead, stop immediately to trigger canUse
             if (currentTarget == null || !currentTarget.isAlive()) {
-                System.out.println("[GUARDIAN] Target died or null, searching for new target...");
                 return false;
             }
 
-            // If target too far, stop to find closer one
             double distSq = ZombieGuardian.this.distanceToSqr(currentTarget);
-            if (distSq > (TARGET_RANGE * TARGET_RANGE)) {
-                System.out.println("[GUARDIAN] Target out of range, searching for new target...");
+            if (distSq > TARGET_RANGE * TARGET_RANGE) {
                 return false;
             }
 
-            return super.canContinueToUse();
+            return true; // Continue attacking
         }
 
         @Override
         public void start() {
             super.start();
-            System.out.println("[GUARDIAN] Starting attack on: " + ZombieGuardian.this.getTarget());
+            // Optional: remove debug logs for cleaner gameplay
+            // System.out.println("[GUARDIAN] Starting attack on: " + ZombieGuardian.this.getTarget());
         }
 
         @Override
         public void stop() {
-            // Don't call super.stop() which might clear things
-            // Just let the goal restart naturally
-            System.out.println("[GUARDIAN] Goal stopped, target: " + ZombieGuardian.this.getTarget());
+            // Don't clear target; goal will naturally re-evaluate next tick
         }
     }
+
 
     @Override
     public boolean canAttack(LivingEntity target) {
