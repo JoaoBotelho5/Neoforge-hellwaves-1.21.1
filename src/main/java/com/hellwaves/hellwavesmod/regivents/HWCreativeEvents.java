@@ -10,6 +10,10 @@ public class HWCreativeEvents {
             event.accept(HWDeferredRegister.ZOMBIE_GUARDIAN_SUMMONER.get());
         }
 
+        if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
+            event.accept(HWDeferredRegister.SKELETON_GUARDIAN_SUMMONER.get());
+        }
+
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(HWDeferredRegister.ACTIVATOR_BLOCK_ITEM.get());
         }

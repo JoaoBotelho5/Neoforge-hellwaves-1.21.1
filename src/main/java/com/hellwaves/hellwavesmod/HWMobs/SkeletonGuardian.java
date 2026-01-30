@@ -139,10 +139,10 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
 
     public ItemStack getUpgradeCost() {
         return switch (guardianLevel) {
-            case 1 -> new ItemStack(Items.BONE, 16);
-            case 2 -> new ItemStack(Items.IRON_BLOCK, 1);
-            case 3 -> new ItemStack(Items.DIAMOND_BLOCK, 1);
-            case 4 -> new ItemStack(Items.NETHER_STAR, 1);
+            case 1 -> new ItemStack(Items.GOLD_BLOCK, 1);      // Different from Zombie's BOOK
+            case 2 -> new ItemStack(Items.EMERALD_BLOCK, 1);   // Different from Zombie's DIAMOND_BLOCK
+            case 3 -> new ItemStack(Items.NETHERITE_INGOT, 2); // Different from Zombie's NETHERITE_SCRAP
+            case 4 -> new ItemStack(Items.NETHER_STAR, 1);     // Same as Zombie
             default -> ItemStack.EMPTY;
         };
     }
@@ -203,14 +203,12 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     }
 
     private void applyLevelBonuses(int oldLevel, int newLevel) {
-        // Level 2: Speed boost
+        // Level 2: Resistance I permanent
         if (newLevel == 2) {
-            var speedAttr = this.getAttribute(Attributes.MOVEMENT_SPEED);
-            if (speedAttr != null) {
-                double currentSpeed = speedAttr.getBaseValue();
-                speedAttr.setBaseValue(currentSpeed + 0.05D); // +0.05 speed
-            }
+            this.removeEffect(MobEffects.DAMAGE_RESISTANCE);
+            this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 999999, 0, false, false));
         }
+
 
         // Level 3: +5 max health
         if (newLevel == 3) {
@@ -280,7 +278,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         this.goalSelector.addGoal(1, new GuardianStayGoal());
         this.goalSelector.addGoal(1, new GuardianFollowGoal());
         this.goalSelector.addGoal(1, new GuardianWanderGoal());
-        this.goalSelector.addGoal(2, new RangedBowAttackGoal<>(this, 1.0D, 20, 15.0F));
+        this.goalSelector.addGoal(2, new SafeRangedBowAttackGoal<>(this, 1.0D, 20, 15.0F));
         this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.2D, false));
         this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
@@ -292,7 +290,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 20.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.25D)
+                .add(Attributes.MOVEMENT_SPEED, 0.18D) // Slower than default (same as ZombieGuardian)
                 .add(Attributes.ATTACK_DAMAGE, 4.0D)
                 .add(Attributes.ARMOR, 0.0D)
                 .add(Attributes.FOLLOW_RANGE, 32.0D);
@@ -659,22 +657,38 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
 
     @Override
     public void performRangedAttack(LivingEntity target, float velocity) {
-        // Certifica-te que o alvo ainda está vivo antes de disparar
         if (target == null || !target.isAlive()) return;
 
-        ItemStack arrow = this.getProjectile(this.getItemInHand(ProjectileUtil.getWeaponHoldingHand(this, Items.BOW)));
-        AbstractArrow abstractArrow = this.getArrow(arrow, velocity, null);
+        ItemStack bowStack = this.getItemInHand(
+                ProjectileUtil.getWeaponHoldingHand(this, Items.BOW)
+        );
 
-        double d0 = target.getX() - this.getX();
-        double d1 = target.getY(0.3333333333333333D) - abstractArrow.getY();
-        double d2 = target.getZ() - this.getZ();
-        double d3 = Math.sqrt(d0 * d0 + d2 * d2);
+        ItemStack arrowStack = this.getProjectile(bowStack);
 
-        abstractArrow.shoot(d0, d1 + d3 * 0.20000000298023224D, d2, 1.6F, (float) (14 - this.level().getDifficulty().getId() * 4));
+        AbstractArrow arrow = this.getArrow(arrowStack, velocity, bowStack);
 
-        this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
-        this.level().addFreshEntity(abstractArrow);
+        double dx = target.getX() - this.getX();
+        double dy = target.getY(0.3333333333333333D) - arrow.getY();
+        double dz = target.getZ() - this.getZ();
+        double d = Math.sqrt(dx * dx + dz * dz);
+
+        arrow.shoot(
+                dx,
+                dy + d * 0.20000000298023224D,
+                dz,
+                1.6F,
+                (float)(14 - this.level().getDifficulty().getId() * 4)
+        );
+
+        this.playSound(
+                SoundEvents.SKELETON_SHOOT,
+                1.0F,
+                1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F)
+        );
+
+        this.level().addFreshEntity(arrow);
     }
+
 
     // ===== SOUNDS =====
 
@@ -793,6 +807,45 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
             if (!stack.isEmpty()) {
                 this.spawnAtLocation(stack);
             }
+        }
+    }
+
+    public class SafeRangedBowAttackGoal<T extends Monster & RangedAttackMob> extends RangedBowAttackGoal<T> {
+
+        private final T mob; // Guarda a referência ao mob
+
+        public SafeRangedBowAttackGoal(T mob, double speedModifier, int attackIntervalMin, float attackRadius) {
+            super(mob, speedModifier, attackIntervalMin, attackRadius);
+            this.mob = mob; // inicializa
+        }
+
+        @Override
+        public boolean canUse() {
+            LivingEntity target = mob.getTarget();
+            if (target == null || !target.isAlive()) {
+                return false;
+            }
+            return super.canUse();
+        }
+
+        @Override
+        public boolean canContinueToUse() {
+            LivingEntity target = mob.getTarget();
+            if (target == null || !target.isAlive()) {
+                return false;
+            }
+            return super.canContinueToUse();
+        }
+
+        @Override
+        public void tick() {
+            LivingEntity target = mob.getTarget();
+            if (target == null || !target.isAlive()) {
+                mob.setTarget(null);
+                this.stop();
+                return;
+            }
+            super.tick();
         }
     }
 

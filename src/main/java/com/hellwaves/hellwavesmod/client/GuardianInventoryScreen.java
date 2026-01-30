@@ -274,10 +274,25 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
     }
 
     // FIXED: Add method to calculate upgrade cost locally from level
+    // This now detects guardian type and returns appropriate costs
     private ItemStack getUpgradeCostForLevel(int currentLevel) {
+        LivingEntity guardianEntity = this.menu.getGuardianEntity();
+
+        // Check if it's a Skeleton Guardian
+        if (guardianEntity instanceof com.hellwaves.hellwavesmod.HWMobs.SkeletonGuardian) {
+            return switch (currentLevel) {
+                case 1 -> new ItemStack(net.minecraft.world.item.Items.GOLD_BLOCK, 1);
+                case 2 -> new ItemStack(net.minecraft.world.item.Items.EMERALD_BLOCK, 1);
+                case 3 -> new ItemStack(net.minecraft.world.item.Items.NETHERITE_INGOT, 2);
+                case 4 -> new ItemStack(net.minecraft.world.item.Items.NETHER_STAR, 1);
+                default -> ItemStack.EMPTY;
+            };
+        }
+
+        // Default to Zombie Guardian costs
         return switch (currentLevel) {
-            case 1 -> new ItemStack(net.minecraft.world.item.Items.IRON_BLOCK, 1);
-            case 2 -> new ItemStack(net.minecraft.world.item.Items.EMERALD_BLOCK, 1);
+            case 1 -> new ItemStack(net.minecraft.world.item.Items.BOOK, 5);
+            case 2 -> new ItemStack(net.minecraft.world.item.Items.DIAMOND_BLOCK, 1);
             case 3 -> new ItemStack(net.minecraft.world.item.Items.NETHERITE_SCRAP, 1);
             case 4 -> new ItemStack(net.minecraft.world.item.Items.NETHER_STAR, 1);
             default -> ItemStack.EMPTY;

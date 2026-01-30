@@ -387,6 +387,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
                         entity instanceof Mob mob &&
                         isHostileMob(mob) &&
                         !(entity instanceof ZombieGuardian) &&
+                        !(entity instanceof SkeletonGuardian) &&
                         entity.isAlive()
         );
 
@@ -484,6 +485,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         if (entity instanceof ZombieGuardian) return false;
         if (entity instanceof SkeletonGuardian) return false;
 
+
         // Include all illagers (Vindicator, Evoker, Pillager, Illusioner, etc.)
         return entity instanceof Monster ||
                 entity instanceof Slime ||
@@ -506,6 +508,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
             return ZombieGuardian.this.isHoldingBow() &&
                     target != null &&
                     isHostileMob(target) &&
+                    target.isAlive() &&
                     super.canUse();
         }
 
@@ -514,8 +517,20 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
             LivingEntity target = ZombieGuardian.this.getTarget();
             return ZombieGuardian.this.isHoldingBow() &&
                     target != null &&
+                    target.isAlive() &&
                     isHostileMob(target) &&
                     super.canContinueToUse();
+        }
+
+        @Override
+        public void tick() {
+            LivingEntity target = ZombieGuardian.this.getTarget();
+            if (target == null || !target.isAlive()) {
+                ZombieGuardian.this.setTarget(null);
+                this.stop();
+                return;
+            }
+            super.tick();
         }
     }
 
@@ -698,9 +713,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     @Override
     public boolean canAttack(LivingEntity target) {
         if (target == null) return false;
-        if (target instanceof SkeletonGuardian || target instanceof ZombieGuardian) return false;
-
-
+        if (target instanceof ZombieGuardian || target instanceof SkeletonGuardian) return false;
 
         boolean isDefending = this.getLastHurtByMob() == target;
 
