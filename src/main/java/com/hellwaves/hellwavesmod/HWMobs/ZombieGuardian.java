@@ -305,28 +305,24 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     public void aiStep() {
         super.aiStep();
 
-        if (stateChangeCooldown > 0) {
-            stateChangeCooldown--;
+        // Decrementa cooldown do AOE
+        if (aoeCooldownTimer > 0) {
+            aoeCooldownTimer--;
         }
 
-        // Clear dead target
+        if (stateChangeCooldown > 0) stateChangeCooldown--;
+
+        // Limpa alvo morto
         LivingEntity target = this.getTarget();
-        if (target != null && !target.isAlive()) {
-            this.setTarget(null);
-        }
+        if (target != null && !target.isAlive()) this.setTarget(null);
 
-        // Clear dead lastHurtByMob
         LivingEntity last = this.getLastHurtByMob();
-        if (last != null && !last.isAlive()) {
-            this.setLastHurtByMob(null);
-        }
+        if (last != null && !last.isAlive()) this.setLastHurtByMob(null);
 
-        // ---- COMBAT TRANSITION LOGIC ----
         boolean inCombat = this.getTarget() != null;
 
         if (wasInCombat && !inCombat) {
-            // combat just ended
-            if (currentState == ZombieGuardian.GuardState.STAY && stayPosition != null) {
+            if (currentState == GuardState.STAY && stayPosition != null) {
                 this.getNavigation().moveTo(
                         stayPosition.getX() + 0.5,
                         stayPosition.getY(),
@@ -337,15 +333,16 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         }
 
         wasInCombat = inCombat;
-        // --------------------------------
 
         handleRegeneration();
-        findNearbyHostileTarget(); // optional
+        findNearbyHostileTarget();
 
+        // === AOE ===
         if (guardianLevel >= 5) {
             handleAOEAbility();
         }
     }
+
 
     private void findNearbyHostileTarget() {
         // Não sobrescrever o target se já houver player ou guardian alvo
