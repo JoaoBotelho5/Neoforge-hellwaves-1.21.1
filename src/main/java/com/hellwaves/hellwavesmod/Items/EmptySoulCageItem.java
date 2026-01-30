@@ -1,11 +1,12 @@
 package com.hellwaves.hellwavesmod.Items;
 
-import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
+import com.hellwaves.hellwavesmod.HWMobs.IGuardian;
 import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -20,7 +21,11 @@ public class EmptySoulCageItem extends Item {
         super(properties);
     }
 
-    public static InteractionResult captureGuardian(ItemStack stack, Player player, ZombieGuardian guardian) {
+    public static InteractionResult captureGuardian(ItemStack stack, Player player, LivingEntity guardian) {
+        if (!(guardian instanceof IGuardian iGuardian)) {
+            return InteractionResult.FAIL;
+        }
+
         if (player.level().isClientSide()) {
             return InteractionResult.SUCCESS;
         }
@@ -34,10 +39,13 @@ public class EmptySoulCageItem extends Item {
 
         // Store specific data we want to preserve
         CompoundTag cageData = new CompoundTag();
-        cageData.putInt("GuardianLevel", guardian.getGuardianLevel());
+        cageData.putInt("GuardianLevel", iGuardian.getGuardianLevel());
         cageData.putFloat("Health", guardian.getHealth());
         cageData.putFloat("MaxHealth", guardian.getMaxHealth());
         cageData.put("GuardianData", guardianData);
+
+        // Store guardian type
+        cageData.putString("GuardianType", guardian.getEncodeId());
 
         // Copy guardian's custom name if it has one
         if (guardian.hasCustomName()) {
@@ -46,6 +54,8 @@ public class EmptySoulCageItem extends Item {
 
         // Use DataComponents instead of setTag
         soulCage.set(DataComponents.CUSTOM_DATA, CustomData.of(cageData));
+
+        iGuardian.setRestoringFromCage(true);
 
         // Remove the guardian from the world
         guardian.discard();
@@ -57,7 +67,7 @@ public class EmptySoulCageItem extends Item {
         }
 
         player.displayClientMessage(
-                Component.literal("§aGuardian captured! Level: " + guardian.getGuardianLevel()),
+                Component.literal("§aGuardian captured! Level: " + iGuardian.getGuardianLevel()),
                 true
         );
 
@@ -66,7 +76,7 @@ public class EmptySoulCageItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.literal("§7Right-click a Guardian Zombie"));
+        tooltip.add(Component.literal("§7Right-click a Guardian"));
         tooltip.add(Component.literal("§7to capture it"));
         super.appendHoverText(stack, context, tooltip, flag);
     }

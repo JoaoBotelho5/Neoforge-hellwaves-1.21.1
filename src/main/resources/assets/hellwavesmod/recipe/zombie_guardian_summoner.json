@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " R ",
+    "EZE",
+    " D "
+  ],
+  "key": {
+    "R": {
+      "item": "minecraft:rotten_flesh"
+    },
+    "E": {
+      "item": "minecraft:emerald"
+    },
+    "Z": {
+      "item": "minecraft:zombie_head"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    }
+  },
+  "result": {
+    "item": "hellwavesmod:zombie_guardian_summoner",
+    "count": 1
+  }
+}

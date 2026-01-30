@@ -1,6 +1,6 @@
 package com.hellwaves.hellwavesmod.client;
 
-import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
+import com.hellwaves.hellwavesmod.HWMobs.IGuardian;
 import com.hellwaves.hellwavesmod.inventory.GuardianInventoryMenu;
 import com.hellwaves.hellwavesmod.packets.Modpackets;
 import com.hellwaves.hellwavesmod.packets.upgradeguardianpacket;
@@ -9,6 +9,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -52,11 +53,15 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
     }
 
     private void onUpgradeClicked() {
-        ZombieGuardian guardian = this.menu.getGuardian();
-        if (guardian != null && guardian.canUpgrade()) {
-            // Send packet to server
-            Modpackets.sendToServer(new upgradeguardianpacket(guardian.getId()));
-            // Menu will auto-sync the new level through container data
+        LivingEntity guardianEntity = this.menu.getGuardianEntity();
+        if (guardianEntity instanceof IGuardian guardian) {
+            // Check if can upgrade based on current level
+            int currentLevel = guardian.getGuardianLevel();
+            if (currentLevel < 5) {
+                // Send packet to server
+                Modpackets.sendToServer(new upgradeguardianpacket(guardianEntity.getId()));
+                // Menu will auto-sync the new level through container data
+            }
         }
     }
 
@@ -199,8 +204,8 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
 
     // NEW: Separate method for gear bonus display below guardian equipment
     private void drawGearBonus(GuiGraphics guiGraphics, int x, int y) {
-        ZombieGuardian guardian = this.menu.getGuardian();
-        if (guardian == null) {
+        LivingEntity guardianEntity = this.menu.getGuardianEntity();
+        if (guardianEntity == null) {
             return;
         }
 
@@ -209,18 +214,18 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
         y += 12;
 
         // Calculate all bonuses
-        ItemStack mainhand = guardian.getItemBySlot(EquipmentSlot.MAINHAND);
+        ItemStack mainhand = guardianEntity.getItemBySlot(EquipmentSlot.MAINHAND);
         double weaponDamage = getWeaponDamage(mainhand);
 
-        double totalArmorFromGear = getArmorValue(guardian.getItemBySlot(EquipmentSlot.HEAD)) +
-                getArmorValue(guardian.getItemBySlot(EquipmentSlot.CHEST)) +
-                getArmorValue(guardian.getItemBySlot(EquipmentSlot.LEGS)) +
-                getArmorValue(guardian.getItemBySlot(EquipmentSlot.FEET));
+        double totalArmorFromGear = getArmorValue(guardianEntity.getItemBySlot(EquipmentSlot.HEAD)) +
+                getArmorValue(guardianEntity.getItemBySlot(EquipmentSlot.CHEST)) +
+                getArmorValue(guardianEntity.getItemBySlot(EquipmentSlot.LEGS)) +
+                getArmorValue(guardianEntity.getItemBySlot(EquipmentSlot.FEET));
 
-        double totalToughness = getToughnessValue(guardian.getItemBySlot(EquipmentSlot.HEAD)) +
-                getToughnessValue(guardian.getItemBySlot(EquipmentSlot.CHEST)) +
-                getToughnessValue(guardian.getItemBySlot(EquipmentSlot.LEGS)) +
-                getToughnessValue(guardian.getItemBySlot(EquipmentSlot.FEET));
+        double totalToughness = getToughnessValue(guardianEntity.getItemBySlot(EquipmentSlot.HEAD)) +
+                getToughnessValue(guardianEntity.getItemBySlot(EquipmentSlot.CHEST)) +
+                getToughnessValue(guardianEntity.getItemBySlot(EquipmentSlot.LEGS)) +
+                getToughnessValue(guardianEntity.getItemBySlot(EquipmentSlot.FEET));
 
         // Horizontal layout: DMG and ARM on top row
         int spacing = 50;
@@ -271,8 +276,8 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
     // FIXED: Add method to calculate upgrade cost locally from level
     private ItemStack getUpgradeCostForLevel(int currentLevel) {
         return switch (currentLevel) {
-            case 1 -> new ItemStack(net.minecraft.world.item.Items.BOOK, 5);
-            case 2 -> new ItemStack(net.minecraft.world.item.Items.DIAMOND_BLOCK, 1);
+            case 1 -> new ItemStack(net.minecraft.world.item.Items.IRON_BLOCK, 1);
+            case 2 -> new ItemStack(net.minecraft.world.item.Items.EMERALD_BLOCK, 1);
             case 3 -> new ItemStack(net.minecraft.world.item.Items.NETHERITE_SCRAP, 1);
             case 4 -> new ItemStack(net.minecraft.world.item.Items.NETHER_STAR, 1);
             default -> ItemStack.EMPTY;

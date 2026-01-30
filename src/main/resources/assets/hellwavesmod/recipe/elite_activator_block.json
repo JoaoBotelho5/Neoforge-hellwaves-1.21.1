@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "NSN",
+    "SAS",
+    "NSN"
+  ],
+  "key": {
+    "N": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "S": {
+      "item": "minecraft:nether_star"
+    },
+    "A": {
+      "item": "hellwavesmod:activator_block"
+    }
+  },
+  "result": {
+    "item": "hellwavesmod:elite_activator_block",
+    "count": 1
+  }
+}

@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
 import java.util.EnumSet;
 import java.util.List;
 
-public class ZombieGuardian extends Zombie implements RangedAttackMob {
+public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian {
     // Estados do mob
     public enum GuardState {
         STAY,       // Fica parado no lugar
@@ -77,14 +77,17 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
         this.xpReward = 50;
     }
 
+    @Override
     public void setRestoringFromCage(boolean restoring) {
         this.restoringFromCage = restoring;
     }
 
+    @Override
     public boolean isRestoringFromCage() {
         return this.restoringFromCage;
     }
 
+    @Override
     public GuardianInventory getGuardianInventory() {
         if (guardianInventory == null) {
             guardianInventory = new GuardianInventory(this);
@@ -94,10 +97,12 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
 
     // ===== LEVELING SYSTEM METHODS =====
 
+    @Override
     public int getGuardianLevel() {
         return guardianLevel;
     }
 
+    @Override
     public void setGuardianLevel(int level) {
         if (level >= 1 && level <= MAX_LEVEL) {
             int oldLevel = this.guardianLevel;
@@ -315,6 +320,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
                 entity -> entity instanceof Mob mob &&
                         isHostileMob(mob) &&
                         !(entity instanceof ZombieGuardian) &&
+                        !(entity instanceof SkeletonGuardian) &&
                         entity.isAlive() &&
                         this.distanceToSqr(entity) <= (range * range)
         );
@@ -430,7 +436,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
 
                     @Override
                     public net.minecraft.world.inventory.AbstractContainerMenu createMenu(int containerId, net.minecraft.world.entity.player.Inventory playerInventory, Player player) {
-                        return new GuardianInventoryMenu(containerId, playerInventory, ZombieGuardian.this);
+                        return new GuardianInventoryMenu(containerId, playerInventory, getGuardianInventory());
                     }
                 }, buf -> buf.writeInt(ZombieGuardian.this.getId()));
 
@@ -476,6 +482,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
     public boolean isHostileMob(LivingEntity entity) {
         if (entity == null || entity == this) return false;
         if (entity instanceof ZombieGuardian) return false;
+        if (entity instanceof SkeletonGuardian) return false;
 
         // Include all illagers (Vindicator, Evoker, Pillager, Illusioner, etc.)
         return entity instanceof Monster ||
@@ -631,6 +638,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
                     entity -> {
                         if (!(entity instanceof Mob mob)) return false;
                         if (entity instanceof ZombieGuardian) return false;
+                        if (entity instanceof SkeletonGuardian) return false;
                         if (!isHostileMob(mob)) return false;
                         if (!entity.isAlive()) return false;
 
@@ -690,7 +698,9 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob {
     @Override
     public boolean canAttack(LivingEntity target) {
         if (target == null) return false;
-        if (target instanceof ZombieGuardian) return false;
+        if (target instanceof SkeletonGuardian || target instanceof ZombieGuardian) return false;
+
+
 
         boolean isDefending = this.getLastHurtByMob() == target;
 

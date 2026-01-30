@@ -15,4 +15,6 @@ public class ModMenuTypes {
             MENUS.register("guardian_inventory",
                     () -> IMenuTypeExtension.create(GuardianInventoryMenu::new));
 // Isso já está correto - o MenuType usará o construtor com FriendlyByteBuf
+
+
 }

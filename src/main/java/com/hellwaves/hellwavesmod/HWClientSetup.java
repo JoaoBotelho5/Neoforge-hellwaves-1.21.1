@@ -1,10 +1,13 @@
 package com.hellwaves.hellwavesmod;
 
+import com.hellwaves.hellwavesmod.HWMobs.SkeletonGuardian;
 import com.hellwaves.hellwavesmod.client.GuardianInventoryScreen;
+import com.hellwaves.hellwavesmod.client.SkeletonGuardianRenderer;
 import com.hellwaves.hellwavesmod.client.WarpedMinerRenderer;
 import com.hellwaves.hellwavesmod.inventory.ModMenuTypes;
 import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
 import net.minecraft.client.renderer.entity.ZombieRenderer;
+import net.minecraft.world.entity.monster.Skeleton;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -29,6 +32,10 @@ public class HWClientSetup {
         // ADICIONE ESTA LINHA PARA O ZOMBIE GUARDIAN
         event.registerEntityRenderer(HWDeferredRegister.ZOMBIE_GUARDIAN.get(),
                 context -> new ZombieRenderer(context) // Usa o mesmo renderer de zombie
+        );
+        // ADICIONE ESTA LINHA PARA O ZOMBIE GUARDIAN
+        event.registerEntityRenderer(HWDeferredRegister.SKELETON_GUARDIAN.get(),
+                context -> new SkeletonGuardianRenderer(context)
         );
     }
     @SubscribeEvent

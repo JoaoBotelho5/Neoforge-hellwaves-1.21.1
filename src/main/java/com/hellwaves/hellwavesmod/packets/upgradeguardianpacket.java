@@ -1,5 +1,7 @@
 package com.hellwaves.hellwavesmod.packets;
 
+import com.hellwaves.hellwavesmod.HWMobs.IGuardian;
+import com.hellwaves.hellwavesmod.HWMobs.SkeletonGuardian;
 import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -32,10 +34,21 @@ public record upgradeguardianpacket(int guardianId) implements CustomPacketPaylo
             if (context.player() instanceof ServerPlayer serverPlayer) {
                 Entity entity = serverPlayer.level().getEntity(packet.guardianId());
 
-                if (entity instanceof ZombieGuardian guardian) {
+                // Works with both ZombieGuardian and SkeletonGuardian
+                if (entity instanceof ZombieGuardian zombieGuardian) {
                     // Check distance
-                    if (serverPlayer.distanceToSqr(guardian) <= 64.0D) {
-                        guardian.tryUpgrade(serverPlayer);
+                    if (serverPlayer.distanceToSqr(zombieGuardian) <= 64.0D) {
+                        zombieGuardian.tryUpgrade(serverPlayer);
+                    } else {
+                        serverPlayer.displayClientMessage(
+                                net.minecraft.network.chat.Component.literal("§cGuardian is too far away!"),
+                                true
+                        );
+                    }
+                } else if (entity instanceof SkeletonGuardian skeletonGuardian) {
+                    // Check distance
+                    if (serverPlayer.distanceToSqr(skeletonGuardian) <= 64.0D) {
+                        skeletonGuardian.tryUpgrade(serverPlayer);
                     } else {
                         serverPlayer.displayClientMessage(
                                 net.minecraft.network.chat.Component.literal("§cGuardian is too far away!"),

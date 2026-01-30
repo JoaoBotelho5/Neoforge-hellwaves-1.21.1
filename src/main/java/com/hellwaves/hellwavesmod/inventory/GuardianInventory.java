@@ -1,15 +1,15 @@
 package com.hellwaves.hellwavesmod.inventory;
 
-import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.Container;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 public class GuardianInventory implements Container {
-    public final ZombieGuardian guardian;
+    public final LivingEntity guardian;
     private final NonNullList<ItemStack> items;
     private static final int SIZE = 38; // 0-37
 
@@ -19,7 +19,7 @@ public class GuardianInventory implements Container {
     // 32-35: Armor (HEAD, CHEST, LEGS, FEET)
     // 36-37: Hands (MAINHAND, OFFHAND)
 
-    public GuardianInventory(ZombieGuardian guardian) {
+    public GuardianInventory(LivingEntity guardian) {
         this.guardian = guardian;
         this.items = NonNullList.withSize(SIZE, ItemStack.EMPTY);
         loadFromEntity();

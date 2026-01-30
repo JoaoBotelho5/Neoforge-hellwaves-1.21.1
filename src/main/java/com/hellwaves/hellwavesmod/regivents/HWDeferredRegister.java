@@ -2,11 +2,13 @@ package com.hellwaves.hellwavesmod.regivents;
 
 import com.hellwaves.hellwavesmod.Blocks.ActivatorBlock;
 import com.hellwaves.hellwavesmod.Blocks.EliteActivatorBlock;
+import com.hellwaves.hellwavesmod.HWMobs.SkeletonGuardian;
 import com.hellwaves.hellwavesmod.HWMobs.UndeadLord;
 import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
 import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
 import com.hellwaves.hellwavesmod.HellwavesMod;
 import com.hellwaves.hellwavesmod.Items.EmptySoulCageItem;
+import com.hellwaves.hellwavesmod.Items.SkeletonGuardianSummonerItem;
 import com.hellwaves.hellwavesmod.Items.SoulCageItem;
 import com.hellwaves.hellwavesmod.Items.ZombieGuardianSummonerItem;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -92,12 +94,27 @@ public class HWDeferredRegister {
                     .clientTrackingRange(8)
                     .build("zombie_guardian")
     );
+    // ADICIONE ESTE REGISTRO PARA O ZOMBIE GUARDIAN
+    public static final DeferredHolder<EntityType<?>, EntityType<SkeletonGuardian>> SKELETON_GUARDIAN = ENTITIES.register(
+            "skeleton_guardian",
+            () -> EntityType.Builder.of(SkeletonGuardian::new, MobCategory.MONSTER)
+                    .sized(0.6F, 1.95F) // Tamanho normal de zombie
+                    .clientTrackingRange(8)
+                    .build("skeleton_guardian")
+    );
 
     // Spawn egg removed - use Zombie Guardian Soul item instead
 
     public static final DeferredHolder<Item, Item> ZOMBIE_GUARDIAN_SUMMONER =
             ITEMS.register("zombie_guardian_summoner",
                     () -> new ZombieGuardianSummonerItem(
+                            new Item.Properties().stacksTo(16)
+                    )
+            );
+
+    public static final DeferredHolder<Item, Item> SKELETON_GUARDIAN_SUMMONER =
+            ITEMS.register("skeleton_guardian_summoner",
+                    () -> new SkeletonGuardianSummonerItem(
                             new Item.Properties().stacksTo(16)
                     )
             );
@@ -132,6 +149,9 @@ public class HWDeferredRegister {
         event.put(WARPED_MINER.get(), WarpedMiner.createAttributes().build());
 
         event.put(ZOMBIE_GUARDIAN.get(), ZombieGuardian.createAttributes().build());
+
+        event.put(SKELETON_GUARDIAN.get(), SkeletonGuardian.createAttributes().build());
+
     }
 
 }

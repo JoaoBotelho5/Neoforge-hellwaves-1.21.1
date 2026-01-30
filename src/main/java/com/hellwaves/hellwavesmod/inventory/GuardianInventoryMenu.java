@@ -1,6 +1,7 @@
 package com.hellwaves.hellwavesmod.inventory;
 
-import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
+import com.hellwaves.hellwavesmod.HWMobs.IGuardian;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -14,7 +15,7 @@ import javax.annotation.Nullable;
 public class GuardianInventoryMenu extends AbstractContainerMenu {
 
     @Nullable
-    private final ZombieGuardian guardian;
+    private final LivingEntity guardianEntity;
     private final GuardianInventory guardianInventory;
     private final Player player;
     private final boolean isClientSide;
@@ -58,12 +59,7 @@ public class GuardianInventoryMenu extends AbstractContainerMenu {
     private static final int DATA_LEVEL = 5;
     private static final int DATA_COUNT = 6;
 
-    // Construtor para MenuType (CLIENTE SEM DADOS)
-    public GuardianInventoryMenu(int containerId, Inventory playerInventory) {
-        this(containerId, playerInventory, null, true);
-    }
-
-    // Construtor com FriendlyByteBuf (CLIENTE COM DADOS DO SERVIDOR)
+    // Construtor para MenuType (CLIENTE COM DADOS DO SERVIDOR via FriendlyByteBuf)
     public GuardianInventoryMenu(int containerId, Inventory playerInventory, net.minecraft.network.FriendlyByteBuf extraData) {
         super(ModMenuTypes.GUARDIAN_INVENTORY_MENU.get(), containerId);
         this.player = playerInventory.player;
@@ -71,8 +67,13 @@ public class GuardianInventoryMenu extends AbstractContainerMenu {
 
         // No client, try to get guardian from world
         int guardianId = extraData.readInt();
-        this.guardian = (ZombieGuardian) playerInventory.player.level().getEntity(guardianId);
-        this.guardianInventory = guardian != null ? guardian.getGuardianInventory() : null;
+        this.guardianEntity = (LivingEntity) playerInventory.player.level().getEntity(guardianId);
+
+        if (guardianEntity instanceof IGuardian iGuardian) {
+            this.guardianInventory = iGuardian.getGuardianInventory();
+        } else {
+            this.guardianInventory = null;
+        }
 
         this.data = new SimpleContainerData(DATA_COUNT);
 
@@ -81,34 +82,30 @@ public class GuardianInventoryMenu extends AbstractContainerMenu {
         addDataSlots(this.data);
     }
 
-    // Construtor com Guardian (SERVER)
-    public GuardianInventoryMenu(int containerId, Inventory playerInventory, @Nullable ZombieGuardian guardian) {
-        this(containerId, playerInventory, guardian, false);
-    }
-
-    // Construtor privado principal
-    private GuardianInventoryMenu(int containerId, Inventory playerInventory, @Nullable ZombieGuardian guardian, boolean clientConstructor) {
+    // Construtor principal (SERVER) - usado quando abrimos o menu no servidor
+    public GuardianInventoryMenu(int containerId, Inventory playerInventory, GuardianInventory guardianInventory) {
         super(ModMenuTypes.GUARDIAN_INVENTORY_MENU.get(), containerId);
-        this.guardian = guardian;
-        this.guardianInventory = guardian != null ? guardian.getGuardianInventory() : null;
         this.player = playerInventory.player;
-        this.isClientSide = clientConstructor || player.level().isClientSide();
+        this.guardianInventory = guardianInventory;
+        this.guardianEntity = guardianInventory.guardian;
+        this.isClientSide = player.level().isClientSide();
 
         // Container data para sincronizar stats
-        if (this.isClientSide) {
+        if (this.isClientSide || !(guardianEntity instanceof IGuardian)) {
             this.data = new SimpleContainerData(DATA_COUNT);
         } else {
+            final IGuardian iGuardian = (IGuardian) guardianEntity;
             this.data = new ContainerData() {
                 @Override
                 public int get(int index) {
-                    if (guardian == null) return 0;
+                    if (guardianEntity == null || !guardianEntity.isAlive()) return 0;
                     return switch (index) {
-                        case DATA_HEALTH -> (int) (guardian.getHealth() * 10);
-                        case DATA_MAX_HEALTH -> (int) (guardian.getMaxHealth() * 10);
-                        case DATA_ATTACK_DAMAGE -> (int) (guardian.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE) * 10);
-                        case DATA_ARMOR -> (int) (guardian.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR) * 10);
-                        case DATA_TOUGHNESS -> (int) (guardian.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR_TOUGHNESS) * 10);
-                        case DATA_LEVEL -> guardian.getGuardianLevel();
+                        case DATA_HEALTH -> (int) (guardianEntity.getHealth() * 10);
+                        case DATA_MAX_HEALTH -> (int) (guardianEntity.getMaxHealth() * 10);
+                        case DATA_ATTACK_DAMAGE -> (int) (guardianEntity.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE) * 10);
+                        case DATA_ARMOR -> (int) (guardianEntity.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR) * 10);
+                        case DATA_TOUGHNESS -> (int) (guardianEntity.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR_TOUGHNESS) * 10);
+                        case DATA_LEVEL -> iGuardian.getGuardianLevel();
                         default -> 0;
                     };
                 }
@@ -261,12 +258,12 @@ public class GuardianInventoryMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return guardian != null && guardian.isAlive() && player.distanceToSqr(guardian) <= 64.0D;
+        return guardianEntity != null && guardianEntity.isAlive() && player.distanceToSqr(guardianEntity) <= 64.0D;
     }
 
     @Nullable
-    public ZombieGuardian getGuardian() {
-        return guardian;
+    public LivingEntity getGuardianEntity() {
+        return guardianEntity;
     }
 
     @Override
