@@ -56,11 +56,11 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     private static final int MAX_LEVEL = 5;
 
     // Regeneração natural
-    private static final int BASE_REGEN_INTERVAL = 100;
     private int regenTimer = 0;
-    private int outOfCombatRegenTimer = 0;
-    private int inCombatRegenTimer = 0;
     private boolean wasInCombat = false;
+    private int combatRegenTickCounter = 0;
+    private int idleRegenTickCounter = 0;
+
 
     // Flag to prevent equipment clearing when restoring from cage
     private boolean restoringFromCage = false;
@@ -283,8 +283,8 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
 
-        this.targetSelector.addGoal(1, new GuardianHurtByTargetGoal());
-        this.targetSelector.addGoal(2, new GuardianAttackHostilesGoal());
+        this.targetSelector.addGoal(1, new GuardianAttackHostilesGoal());
+
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -469,12 +469,14 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         public void tick() {
             LivingEntity target = SkeletonGuardian.this.getTarget();
 
+            // Remove target morto
             if (target == null || !target.isAlive()) {
                 SkeletonGuardian.this.setTarget(null);
-                return; // skip attacking dead or null targets
+                SkeletonGuardian.this.setLastHurtByMob(null);
+                return;
             }
 
-            super.tick(); // only call super if target is valid
+            super.tick();
         }
 
     }
@@ -515,10 +517,20 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        if (source.getEntity() instanceof SkeletonGuardian || source.getEntity() instanceof ZombieGuardian) {
-            return false;
+        boolean result = super.hurt(source, amount);
+
+        // Limpa qualquer target morto imediatamente
+        LivingEntity target = this.getTarget();
+        if (target != null && !target.isAlive()) {
+            this.setTarget(null);
         }
-        return super.hurt(source, amount);
+
+        LivingEntity last = this.getLastHurtByMob();
+        if (last != null && !last.isAlive()) {
+            this.setLastHurtByMob(null);
+        }
+
+        return result;
     }
 
     // ===== TICK & ABILITIES =====
@@ -592,30 +604,41 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         if (inCombat != wasInCombat) {
             wasInCombat = inCombat;
             if (!inCombat) {
-                outOfCombatRegenTimer = 0;
+                idleRegenTickCounter = 0;
             } else {
-                inCombatRegenTimer = 0;
+                combatRegenTickCounter = 0;
             }
         }
 
         if (inCombat) {
-            inCombatRegenTimer++;
-            if (inCombatRegenTimer >= BASE_REGEN_INTERVAL * 4) {
-                if (this.getHealth() < this.getMaxHealth()) {
-                    this.heal(getRegenAmount());
-                }
-                inCombatRegenTimer = 0;
+            combatRegenTickCounter++;
+            // Em combate: 1 HP a cada 10s antes do lvl 3, 2 HP a cada 5s no lvl 3+
+            int combatIntervalTicks = (guardianLevel >= 3) ? 100 : 200; // 20 ticks por segundo
+            float combatHeal = (guardianLevel >= 3) ? 2.0F : 1.0F;
+
+            if (combatRegenTickCounter >= combatIntervalTicks) {
+                healSafely(combatHeal);
+                combatRegenTickCounter = 0;
             }
         } else {
-            outOfCombatRegenTimer++;
-            if (outOfCombatRegenTimer >= BASE_REGEN_INTERVAL) {
-                if (this.getHealth() < this.getMaxHealth()) {
-                    this.heal(getRegenAmount());
-                }
-                outOfCombatRegenTimer = 0;
+            idleRegenTickCounter++;
+            // Fora de combate: 1 HP a cada 5s antes do lvl 3, 2 HP a cada 5s no lvl 3+
+            int idleIntervalTicks = (guardianLevel >= 3) ? 100 : 100;
+            float idleHeal = (guardianLevel >= 3) ? 2.0F : 1.0F;
+
+            if (idleRegenTickCounter >= idleIntervalTicks) {
+                healSafely(idleHeal);
+                idleRegenTickCounter = 0;
             }
         }
     }
+
+
+    private void healSafely(float amount) {
+        this.setHealth(Math.min(this.getHealth() + amount, this.getMaxHealth()));
+    }
+
+
 
     // ===== INTERACTION =====
 
@@ -664,7 +687,6 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         );
 
         ItemStack arrowStack = this.getProjectile(bowStack);
-
         AbstractArrow arrow = this.getArrow(arrowStack, velocity, bowStack);
 
         double dx = target.getX() - this.getX();
@@ -821,19 +843,22 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
 
         @Override
         public boolean canUse() {
-            LivingEntity target = mob.getTarget();
+            LivingEntity target = this.mob.getTarget();
             if (target == null || !target.isAlive()) {
                 return false;
             }
+
             return super.canUse();
         }
 
         @Override
         public boolean canContinueToUse() {
-            LivingEntity target = mob.getTarget();
+            LivingEntity target = this.mob.getTarget();
+
             if (target == null || !target.isAlive()) {
-                return false;
+                return false; // ISTO É O CRÍTICO
             }
+
             return super.canContinueToUse();
         }
 
@@ -842,9 +867,20 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
             LivingEntity target = mob.getTarget();
             if (target == null || !target.isAlive()) {
                 mob.setTarget(null);
+
+                // Reset internal timers e animação
+                mob.setAggressive(false);
                 this.stop();
+
+                try {
+                    java.lang.reflect.Field attackTickField = RangedBowAttackGoal.class.getDeclaredField("attackTime");
+                    attackTickField.setAccessible(true);
+                    attackTickField.setInt(this, 0); // reset attack timer
+                } catch (Exception ignored) {}
+
                 return;
             }
+
             super.tick();
         }
     }

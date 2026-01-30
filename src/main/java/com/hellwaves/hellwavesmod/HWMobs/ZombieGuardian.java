@@ -261,8 +261,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
 
-        this.targetSelector.addGoal(1, new GuardianHurtByTargetGoal());
-        this.targetSelector.addGoal(2, new GuardianAttackHostilesGoal());
+        this.targetSelector.addGoal(1, new GuardianAttackHostilesGoal());
     }
 
     public static AttributeSupplier.Builder createAttributes() {
