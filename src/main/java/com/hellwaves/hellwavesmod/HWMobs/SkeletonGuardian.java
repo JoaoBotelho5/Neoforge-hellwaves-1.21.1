@@ -222,16 +222,14 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
             }
         }
 
-        // Level 4: Fire resistance
+        // Level 4: every 5 arrows, fires a faster one. handled by safebowgoal
         if (newLevel == 4) {
-            this.removeEffect(MobEffects.FIRE_RESISTANCE);
-            this.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 999999, 0, false, false));
+            return;
         }
 
-        // Level 5: Regeneration
+        // Level 5: Is handled by performrangedattack, aplying offhand effects.
         if (newLevel == 5) {
-            this.removeEffect(MobEffects.REGENERATION);
-            this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 999999, 0, false, false));
+            return;
         }
     }
 
@@ -779,11 +777,14 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
             int savedLevel = compound.getInt("GuardianLevel");
             this.guardianLevel = savedLevel;
             // Reapply effects for level 4 and 5
+            if (savedLevel >= 2) {
+                this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 999999, 0, false, false));
+            }
             if (savedLevel >= 4) {
-                this.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 999999, 0, false, false));
+                return;
             }
             if (savedLevel >= 5) {
-                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 999999, 0, false, false));
+                return;
             }
         }
         if (compound.contains("WasInCombat")) {

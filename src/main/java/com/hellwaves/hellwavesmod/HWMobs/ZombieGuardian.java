@@ -759,7 +759,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         if (guardianLevel >= 5) {
             ItemStack offhandStack = this.getItemBySlot(EquipmentSlot.OFFHAND);
             if (offhandStack.getItem() instanceof ShieldItem) {
-                if (this.getRandom().nextFloat() < 0.5F) {
+                if (this.getRandom().nextFloat() < 0.35F) {
                     // Block the damage - play shield sound
                     this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
                             SoundEvents.SHIELD_BLOCK, this.getSoundSource(), 1.0F, 1.0F);
