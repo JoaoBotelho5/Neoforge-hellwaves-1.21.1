@@ -49,9 +49,9 @@ public class EliteWaveManager {
 
         // Wave 5: Ultimate challenge
         List<EntityType<? extends Mob>> enemies5 = new ArrayList<>();
-        for (int i = 0; i < 4; i++) enemies5.add(EntityType.WITHER_SKELETON);
-        for (int i = 0; i < 3; i++) enemies5.add(EntityType.BLAZE);
-        for (int i = 0; i < 2; i++) enemies5.add(EntityType.RAVAGER);
+//        for (int i = 0; i < 4; i++) enemies5.add(EntityType.WITHER_SKELETON);
+//        for (int i = 0; i < 3; i++) enemies5.add(EntityType.BLAZE);
+//        for (int i = 0; i < 2; i++) enemies5.add(EntityType.RAVAGER);
         for (int i = 0; i < 1; i++) enemies5.add(EntityType.WARDEN); // Big finale!
         WAVES.add(new EliteWave(enemies5));
 

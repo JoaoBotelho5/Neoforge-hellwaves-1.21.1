@@ -1,22 +1,19 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    " R ",
-    "EZE",
-    " D "
+    " A ",
+    "BCB",
+    " A "
   ],
   "key": {
-    "R": {
+    "A": {
       "item": "minecraft:rotten_flesh"
     },
-    "E": {
-      "item": "minecraft:emerald"
+    "B": {
+      "item": "minecraft:emerald_block"
     },
-    "Z": {
-      "item": "minecraft:zombie_head"
-    },
-    "D": {
-      "item": "minecraft:diamond"
+    "C": {
+      "item": "minecraft:ender_pearl"
     }
   },
   "result": {

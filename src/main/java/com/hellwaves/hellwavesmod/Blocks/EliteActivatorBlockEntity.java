@@ -84,8 +84,8 @@ public class EliteActivatorBlockEntity extends BlockEntity {
                 // Better rewards for elite version
                 ItemStack[] drops = {
                         new ItemStack(Items.NETHER_STAR, 1),
-                        new ItemStack(Items.DIAMOND_BLOCK, 10),
-                        new ItemStack(Items.EMERALD_BLOCK, 10),
+                        new ItemStack(Items.DIAMOND_BLOCK, 3),
+                        new ItemStack(Items.EMERALD_BLOCK, 3),
                         new ItemStack(Items.ANCIENT_DEBRIS, 5)
                 };
 

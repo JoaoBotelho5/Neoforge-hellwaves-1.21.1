@@ -2,21 +2,18 @@
   "type": "minecraft:crafting_shaped",
   "pattern": [
     " B ",
-    "ESE",
-    " D "
+    "ACA",
+    " B "
   ],
   "key": {
+    "A": {
+      "item": "minecraft:diamond_block"
+    },
     "B": {
       "item": "minecraft:bone"
     },
-    "E": {
-      "item": "minecraft:emerald"
-    },
-    "S": {
-      "item": "minecraft:skeleton_skull"
-    },
-    "D": {
-      "item": "minecraft:diamond"
+    "C": {
+      "item": "minecraft:ender_pearl"
     }
   },
   "result": {

@@ -467,6 +467,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
                         if (!(entity instanceof Mob mob)) return false;
                         if (entity instanceof SkeletonGuardian) return false;
                         if (entity instanceof ZombieGuardian) return false;
+                        if (entity instanceof Creeper) return false;
                         if (!isHostileMob(mob)) return false;
                         if (!entity.isAlive()) return false;
 
@@ -521,6 +522,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
                 target instanceof SnowGolem ||
                 target instanceof Wolf ||
                 target instanceof Villager ||
+                target instanceof Creeper ||
                 target instanceof SkeletonGuardian ||
                 target instanceof ZombieGuardian) {
             return false;
@@ -534,7 +536,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     @Override
     public boolean canAttack(LivingEntity target) {
         if (target == null) return false;
-        if (target instanceof SkeletonGuardian || target instanceof ZombieGuardian) return false;
+        if (target instanceof SkeletonGuardian || target instanceof ZombieGuardian || target instanceof Creeper) return false;
 
         boolean isDefending = this.getLastHurtByMob() == target;
 

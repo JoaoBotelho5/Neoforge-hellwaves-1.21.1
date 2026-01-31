@@ -1,19 +1,22 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "NSN",
-    "SAS",
-    "NSN"
+    "BAB",
+    "ADA",
+    "CBC"
   ],
   "key": {
-    "N": {
-      "item": "minecraft:netherite_ingot"
-    },
-    "S": {
-      "item": "minecraft:nether_star"
-    },
     "A": {
-      "item": "hellwavesmod:activator_block"
+      "item": "minecraft:nether_wart"
+    },
+    "B": {
+      "item": "minecraft:magma_cream"
+    },
+    "C": {
+      "item": "hellwavesmod:ghast_tear"
+    },
+    "D": {
+      "item": "hellwavesmod:echo_shard"
     }
   },
   "result": {

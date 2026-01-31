@@ -413,6 +413,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
                         entity instanceof Mob mob &&
                         isHostileMob(mob) &&
                         !(entity instanceof ZombieGuardian) &&
+                        !(entity instanceof Creeper) &&
                         !(entity instanceof SkeletonGuardian) &&
                         entity.isAlive()
         );
@@ -506,6 +507,8 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
         if (entity == null || entity == this) return false;
         if (entity instanceof ZombieGuardian) return false;
         if (entity instanceof SkeletonGuardian) return false;
+        if (entity instanceof Creeper) return false;
+
 
 
         // Include all illagers (Vindicator, Evoker, Pillager, Illusioner, etc.)
@@ -743,6 +746,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
                         if (!(entity instanceof Mob mob)) return false;
                         if (entity instanceof ZombieGuardian) return false;
                         if (entity instanceof SkeletonGuardian) return false;
+                        if (entity instanceof Creeper) return false;
                         if (!isHostileMob(mob)) return false;
                         if (!entity.isAlive()) return false;
 
@@ -796,7 +800,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     @Override
     public boolean canAttack(LivingEntity target) {
         if (target == null) return false;
-        if (target instanceof ZombieGuardian || target instanceof SkeletonGuardian) return false;
+        if (target instanceof ZombieGuardian || target instanceof SkeletonGuardian || target instanceof Creeper) return false;
 
         boolean isDefending = this.getLastHurtByMob() == target;
 
