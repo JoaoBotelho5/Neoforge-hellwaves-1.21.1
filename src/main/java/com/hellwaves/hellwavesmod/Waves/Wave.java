@@ -55,7 +55,11 @@ public class Wave {
                     EquipmentHelper.applyGear(mob, waveConfig);
                 }
 
-                mob.goalSelector.addGoal(1, new WalkCenterGoal(mob, pos, 1.0));
+                // CRITICAL: WarpedMiner já tem seus próprios goals de mining e movimento
+                // Não adicionar WalkCenterGoal pois interfere com a mineração
+                if (!(mob instanceof WarpedMiner)) {
+                    mob.goalSelector.addGoal(1, new WalkCenterGoal(mob, pos, 1.0));
+                }
 
                 mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.MAINHAND, 0f);
                 mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.OFFHAND, 0f);
@@ -88,7 +92,7 @@ public class Wave {
         public boolean canUse() {
 
             if (!(mob.level().getBlockState(center).getBlock() instanceof ActivatorBlock) &&
-            !(mob.level().getBlockState(center).getBlock() instanceof EliteActivatorBlock)) {
+                    !(mob.level().getBlockState(center).getBlock() instanceof EliteActivatorBlock)) {
                 return false;
             }
 

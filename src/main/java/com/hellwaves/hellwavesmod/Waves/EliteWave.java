@@ -2,6 +2,7 @@ package com.hellwaves.hellwavesmod.Waves;
 
 import com.google.gson.JsonObject;
 import com.hellwaves.hellwavesmod.equipment.EliteEquipmentHelper;
+import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
 import com.hellwaves.hellwavesmod.WavesManager.EliteWaveManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
@@ -57,6 +58,11 @@ public class EliteWave {
 
                 mob.moveTo(x, y, z, 0.0F, 0.0F);
 
+                // Configuração especial para WarpedMiner
+                if (mob instanceof WarpedMiner warpedMiner) {
+                    warpedMiner.setTargetBlock(pos); // Define o bloco alvo como o ativador
+                }
+
                 // Configuração especial para Warden
                 if (mob instanceof Warden warden && world instanceof ServerLevel serverLevel) {
                     DifficultyInstance difficulty = serverLevel.getCurrentDifficultyAt(mob.blockPosition());
@@ -88,8 +94,11 @@ public class EliteWave {
                     EliteEquipmentHelper.applyGear(mob, waveConfig);
                 }
 
-                // Goal de andar até ao centro da wave
-                mob.goalSelector.addGoal(1, new Wave.WalkCenterGoal(mob, pos, 1.2)); // Faster movement
+                // CRITICAL: WarpedMiner já tem seus próprios goals de mining e movimento
+                // Não adicionar WalkCenterGoal pois interfere com a mineração
+                if (!(mob instanceof WarpedMiner)) {
+                    mob.goalSelector.addGoal(1, new Wave.WalkCenterGoal(mob, pos, 1.2)); // Faster movement
+                }
 
                 // Desativa drops
                 mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.MAINHAND, 0f);

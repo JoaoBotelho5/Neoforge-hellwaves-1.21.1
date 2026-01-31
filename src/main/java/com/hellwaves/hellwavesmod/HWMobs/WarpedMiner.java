@@ -328,15 +328,29 @@ public class WarpedMiner extends ZombifiedPiglin {
             return false;
         }
 
-        if (currentPos.distSqr(pos) > 4) {
-            return false;
+        double distSqr = currentPos.distSqr(pos);
+
+        // CRITICAL FIX: Se está a 3 blocos ou menos (9 squared), permite minerar
+        // independentemente de estar mob-blocked
+        if (distSqr <= MAX_BREAK_DISTANCE * MAX_BREAK_DISTANCE) {
+            // Verifica se é um bloco que pode e deve ser quebrado
+            if (!canBreakBlock(pos)) {
+                return false;
+            }
+
+            // Se está na direção do movimento E dentro do alcance, pode minerar
+            if (isBlockingImmediateMovement(pos)) {
+                return true;
+            }
+
+            // Se não está na direção imediata mas ainda está dentro do alcance,
+            // verifica se está entre o mineiro e o alvo
+            if (this.targetBlockPos != null && isBlockBetweenMinerAndTarget(pos)) {
+                return true;
+            }
         }
 
-        if (!isBlockingImmediateMovement(pos)) {
-            return false;
-        }
-
-        return canBreakBlock(pos);
+        return false;
     }
 
     private boolean isBlockingImmediateMovement(BlockPos pos) {
@@ -377,6 +391,29 @@ public class WarpedMiner extends ZombifiedPiglin {
 
     private boolean isBlockInImmediatePath(BlockPos pos) {
         return isImmediateObstacle(pos);
+    }
+
+    private boolean isBlockBetweenMinerAndTarget(BlockPos blockPos) {
+        if (this.targetBlockPos == null) {
+            return false;
+        }
+
+        BlockPos currentPos = this.blockPosition();
+
+        // Verifica se o bloco está aproximadamente na direção do alvo
+        // usando produto escalar dos vetores
+        double dx1 = blockPos.getX() - currentPos.getX();
+        double dy1 = blockPos.getY() - currentPos.getY();
+        double dz1 = blockPos.getZ() - currentPos.getZ();
+
+        double dx2 = this.targetBlockPos.getX() - currentPos.getX();
+        double dy2 = this.targetBlockPos.getY() - currentPos.getY();
+        double dz2 = this.targetBlockPos.getZ() - currentPos.getZ();
+
+        // Produto escalar - se positivo, está na mesma direção geral
+        double dotProduct = dx1 * dx2 + dy1 * dy2 + dz1 * dz2;
+
+        return dotProduct > 0;
     }
 
     private boolean canBreakBlock(BlockPos pos) {
