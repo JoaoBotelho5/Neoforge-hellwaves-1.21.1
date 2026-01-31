@@ -3,6 +3,7 @@ package com.hellwaves.hellwavesmod.WavesManager;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.hellwaves.hellwavesmod.Waves.EliteWave;
+import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
@@ -20,30 +21,31 @@ public class EliteWaveManager {
     static {
         // Wave 1: Basic hostile mobs
         List<EntityType<? extends Mob>> enemies1 = new ArrayList<>();
-        for (int i = 0; i < 8; i++) enemies1.add(EntityType.ZOMBIE);
-        for (int i = 0; i < 8; i++) enemies1.add(EntityType.SKELETON);
+        for (int i = 0; i < 8; i++) enemies1.add(EntityType.HUSK);
+        for (int i = 0; i < 6; i++) enemies1.add(EntityType.SKELETON);
         for (int i = 0; i < 4; i++) enemies1.add(EntityType.SPIDER);
+        for (int i = 0; i < 5; i++) enemies1.add(HWDeferredRegister.WARPED_MINER.get()); // WARPED MINERS
         WAVES.add(new EliteWave(enemies1));
 
         // Wave 2: Nether mobs
         List<EntityType<? extends Mob>> enemies2 = new ArrayList<>();
         for (int i = 0; i < 12; i++) enemies2.add(EntityType.PIGLIN);
-        for (int i = 0; i < 8; i++) enemies2.add(EntityType.WITHER_SKELETON);
+        for (int i = 0; i < 3; i++) enemies2.add(EntityType.PIGLIN_BRUTE);
         for (int i = 0; i < 4; i++) enemies2.add(EntityType.BLAZE);
         WAVES.add(new EliteWave(enemies2));
 
         // Wave 3: End mobs
         List<EntityType<? extends Mob>> enemies3 = new ArrayList<>();
-        for (int i = 0; i < 4; i++) enemies3.add(EntityType.ENDERMAN);
-        for (int i = 0; i < 8; i++) enemies3.add(EntityType.WITHER_SKELETON);
-        for (int i = 0; i < 2; i++) enemies3.add(EntityType.PIGLIN_BRUTE);
+        for (int i = 0; i < 5; i++) enemies3.add(EntityType.PHANTOM);
+        for (int i = 0; i < 10; i++) enemies3.add(EntityType.WITHER_SKELETON);
+        for (int i = 0; i < 5; i++) enemies3.add(HWDeferredRegister.WARPED_MINER.get()); // WARPED MINERS
         WAVES.add(new EliteWave(enemies3));
 
         // Wave 4: Boss-like mobs
         List<EntityType<? extends Mob>> enemies4 = new ArrayList<>();
-        for (int i = 0; i < 4; i++) enemies4.add(EntityType.RAVAGER);
+        for (int i = 0; i < 3; i++) enemies4.add(EntityType.RAVAGER);
         for (int i = 0; i < 8; i++) enemies4.add(EntityType.PILLAGER);
-        for (int i = 0; i < 6; i++) enemies4.add(EntityType.VINDICATOR);
+        for (int i = 0; i < 5; i++) enemies4.add(EntityType.VINDICATOR);
         for (int i = 0; i < 2; i++) enemies4.add(EntityType.EVOKER);
         WAVES.add(new EliteWave(enemies4));
 
