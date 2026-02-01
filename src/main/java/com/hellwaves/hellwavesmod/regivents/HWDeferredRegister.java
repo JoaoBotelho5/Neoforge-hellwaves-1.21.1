@@ -7,16 +7,14 @@ import com.hellwaves.hellwavesmod.HWMobs.UndeadLord;
 import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
 import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
 import com.hellwaves.hellwavesmod.HellwavesMod;
-import com.hellwaves.hellwavesmod.Items.EmptySoulCageItem;
-import com.hellwaves.hellwavesmod.Items.SkeletonGuardianSummonerItem;
-import com.hellwaves.hellwavesmod.Items.SoulCageItem;
-import com.hellwaves.hellwavesmod.Items.ZombieGuardianSummonerItem;
+import com.hellwaves.hellwavesmod.Items.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.Tiers;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.neoforged.bus.api.IEventBus;
@@ -135,6 +133,23 @@ public class HWDeferredRegister {
                             .stacksTo(1) // Can only stack 1 since each contains unique guardian data
             )
     );
+
+    public static final DeferredHolder<Item, Item> GREAT_SWORD = ITEMS.register(
+            "greatsword",
+            () -> new GreatswordItem(
+                    new Item.Properties()
+                            .stacksTo(1)
+                            .attributes(
+                                    SwordItem.createAttributes(
+                                            new GreatswordTier(), // tier do material
+                                            1.0F,                 // extra attack damage tipo espada
+                                            -3.2F                 // attack speed
+                                    )
+                            )
+            )
+    );
+
+
 
 
 

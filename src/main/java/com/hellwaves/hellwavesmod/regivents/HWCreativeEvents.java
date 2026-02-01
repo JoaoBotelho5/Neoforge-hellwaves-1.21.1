@@ -24,5 +24,8 @@ public class HWCreativeEvents {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(HWDeferredRegister.EMPTY_SOUL_CAGE.get());
         }
+        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(HWDeferredRegister.GREAT_SWORD.get());
+        }
     }
 }
