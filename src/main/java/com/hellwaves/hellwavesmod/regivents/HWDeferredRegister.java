@@ -142,8 +142,8 @@ public class HWDeferredRegister {
                             .attributes(
                                     SwordItem.createAttributes(
                                             new GreatswordTier(), // tier do material
-                                            1.0F,                 // extra attack damage tipo espada
-                                            -3.2F                 // attack speed
+                                            4.0F,                 // extra attack damage tipo espada
+                                            -3.0F                 // attack speed
                                     )
                             )
             )
