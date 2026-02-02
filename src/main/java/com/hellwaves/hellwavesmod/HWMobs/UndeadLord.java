@@ -20,11 +20,14 @@ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Skeleton;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 
 import javax.annotation.Nullable;
+
+import static com.hellwaves.hellwavesmod.regivents.HWDeferredRegister.GREAT_SWORD;
 
 public class UndeadLord extends Zombie {
     // Custom stats
@@ -306,10 +309,26 @@ public class UndeadLord extends Zombie {
         super.die(damageSource);
 
         if (!this.level().isClientSide()) {
-            this.level().playSound(null, this.blockPosition(), SoundEvents.ZOMBIE_DEATH, this.getSoundSource(), 2.0F, 1.0F);
+
+            // DROP DA GREATSWORD
+            ItemStack greatsword = new ItemStack(GREAT_SWORD.get());
+            this.spawnAtLocation(greatsword);
+
+            // Som + mensagem (o que já tinhas)
+            this.level().playSound(
+                    null,
+                    this.blockPosition(),
+                    SoundEvents.ZOMBIE_DEATH,
+                    this.getSoundSource(),
+                    2.0F,
+                    1.0F
+            );
 
             this.level().players().forEach(player ->
-                    player.displayClientMessage(Component.literal("§6The Undead Lord has been defeated!§r"), true)
+                    player.displayClientMessage(
+                            Component.literal("§6The Undead Lord has been defeated!§r"),
+                            true
+                    )
             );
         }
     }
