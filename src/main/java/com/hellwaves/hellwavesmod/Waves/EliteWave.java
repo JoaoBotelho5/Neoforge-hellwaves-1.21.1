@@ -5,9 +5,12 @@ import com.hellwaves.hellwavesmod.equipment.EliteEquipmentHelper;
 import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
 import com.hellwaves.hellwavesmod.WavesManager.EliteWaveManager;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.server.level.ServerLevel;
@@ -58,12 +61,7 @@ public class EliteWave {
 
                 mob.moveTo(x, y, z, 0.0F, 0.0F);
 
-                // ConfiguraÃ§Ã£o especial para WarpedMiner
-                if (mob instanceof WarpedMiner warpedMiner) {
-                    warpedMiner.setTargetBlock(pos); // Define o bloco alvo como o ativador
-                }
-
-                // ConfiguraÃ§Ã£o especial para Warden
+                // Configuração especial para Warden
                 if (mob instanceof Warden warden && world instanceof ServerLevel serverLevel) {
                     DifficultyInstance difficulty = serverLevel.getCurrentDifficultyAt(mob.blockPosition());
 
@@ -89,24 +87,37 @@ public class EliteWave {
 
                 world.addFreshEntity(mob);
 
-                // Aplica equipamento se houver configuraÃ§Ã£o
+                // Aplica equipamento se houver configuração
                 if (waveConfig != null) {
                     EliteEquipmentHelper.applyGear(mob, waveConfig);
                 }
 
-                // CRITICAL: WarpedMiner jÃ¡ tem seus prÃ³prios goals de mining e movimento
-                // NÃ£o adicionar WalkCenterGoal pois interfere com a mineraÃ§Ã£o
+                // === WARPEd MINER CUSTOM GEAR & NAME FIX ===
+                if (mob instanceof WarpedMiner warpedMiner) {
+                    warpedMiner.setTargetBlock(pos); // Define o bloco alvo como o ativador
+
+                    // Force custom name + gear AFTER wave equipment is applied
+                    warpedMiner.setItemSlot(EquipmentSlot.MAINHAND, Items.IRON_PICKAXE.getDefaultInstance());
+                    warpedMiner.setItemSlot(EquipmentSlot.HEAD, Items.NETHERITE_HELMET.getDefaultInstance());
+                    warpedMiner.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
+                    warpedMiner.setDropChance(EquipmentSlot.HEAD, 0.0F);
+                    warpedMiner.setCustomName(Component.literal("§c⚠ Warped Miner ⚠"));
+                    warpedMiner.setCustomNameVisible(true);
+                }
+
+                // CRITICAL: WarpedMiner já tem seus próprios goals de mining e movimento
+                // Não adicionar WalkCenterGoal pois interfere com a mineração
                 if (!(mob instanceof WarpedMiner)) {
                     mob.goalSelector.addGoal(1, new Wave.WalkCenterGoal(mob, pos, 1.2)); // Faster movement
                 }
 
                 // Desativa drops
-                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.MAINHAND, 0f);
-                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.OFFHAND, 0f);
-                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.HEAD, 0f);
-                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.CHEST, 0f);
-                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.LEGS, 0f);
-                mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.FEET, 0f);
+                mob.setDropChance(EquipmentSlot.MAINHAND, 0f);
+                mob.setDropChance(EquipmentSlot.OFFHAND, 0f);
+                mob.setDropChance(EquipmentSlot.HEAD, 0f);
+                mob.setDropChance(EquipmentSlot.CHEST, 0f);
+                mob.setDropChance(EquipmentSlot.LEGS, 0f);
+                mob.setDropChance(EquipmentSlot.FEET, 0f);
 
                 spawned.add(mob);
             }

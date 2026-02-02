@@ -7,8 +7,12 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.monster.ZombifiedPiglin;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EquipmentSlot;
 
 import javax.annotation.Nullable;
 
@@ -83,7 +87,7 @@ public class WarpedMiner extends ZombifiedPiglin {
     }
 
     /**
-     * FIXED: uses TARGET direction, not facing direction
+     * Uses TARGET direction, not facing direction
      */
     private void attemptPredictiveBreak() {
         BlockPos current = this.blockPosition();
@@ -94,7 +98,7 @@ public class WarpedMiner extends ZombifiedPiglin {
 
         BlockPos front;
 
-        // Horizontal priority (THIS FIXES SIDEWAYS MINING)
+        // Horizontal priority (sideways mining fixed)
         if (dx != 0) {
             front = current.offset(dx, 0, 0);
         } else if (dz != 0) {
@@ -139,6 +143,18 @@ public class WarpedMiner extends ZombifiedPiglin {
             MobSpawnType type,
             @Nullable SpawnGroupData data
     ) {
-        return super.finalizeSpawn(level, diff, type, data);
+        data = super.finalizeSpawn(level, diff, type, data);
+
+        // ⚡ SPAWN GEAR & CUSTOM NAME
+        this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_PICKAXE));
+        this.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.NETHERITE_HELMET));
+
+        this.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
+        this.setDropChance(EquipmentSlot.HEAD, 0.0F);
+
+        this.setCustomName(Component.literal("§c⚠ Warped Miner ⚠"));
+        this.setCustomNameVisible(true);
+
+        return data;
     }
 }
