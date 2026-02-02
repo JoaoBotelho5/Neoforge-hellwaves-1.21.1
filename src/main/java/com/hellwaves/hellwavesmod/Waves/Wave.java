@@ -44,7 +44,7 @@ public class Wave {
 
                 mob.moveTo(x, y, z, 0, 0);
 
-                // CONFIGURAÇÃO ESPECIAL PARA O WARPED MINER
+                // CONFIGURAÃ‡ÃƒO ESPECIAL PARA O WARPED MINER
                 if (mob instanceof WarpedMiner warpedMiner) {
                     warpedMiner.setTargetBlock(pos); // Define o bloco alvo como o ativador
                 }
@@ -55,8 +55,8 @@ public class Wave {
                     EquipmentHelper.applyGear(mob, waveConfig);
                 }
 
-                // CRITICAL: WarpedMiner já tem seus próprios goals de mining e movimento
-                // Não adicionar WalkCenterGoal pois interfere com a mineração
+                // CRITICAL: WarpedMiner jÃ¡ tem seus prÃ³prios goals de mining e movimento
+                // NÃ£o adicionar WalkCenterGoal pois interfere com a mineraÃ§Ã£o
                 if (!(mob instanceof WarpedMiner)) {
                     mob.goalSelector.addGoal(1, new WalkCenterGoal(mob, pos, 1.0));
                 }

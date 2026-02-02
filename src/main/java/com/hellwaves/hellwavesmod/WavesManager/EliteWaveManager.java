@@ -24,19 +24,19 @@ public class EliteWaveManager {
         for (int i = 0; i < 8; i++) enemies1.add(EntityType.HUSK);
         for (int i = 0; i < 6; i++) enemies1.add(EntityType.SKELETON);
         for (int i = 0; i < 4; i++) enemies1.add(EntityType.SPIDER);
-        for (int i = 0; i < 5; i++) enemies1.add(HWDeferredRegister.WARPED_MINER.get()); // WARPED MINERS
+        for (int i = 0; i < 3; i++) enemies1.add(HWDeferredRegister.WARPED_MINER.get()); // WARPED MINERS
         WAVES.add(new EliteWave(enemies1));
 
         // Wave 2: Nether mobs
         List<EntityType<? extends Mob>> enemies2 = new ArrayList<>();
-        for (int i = 0; i < 12; i++) enemies2.add(EntityType.PIGLIN);
-        for (int i = 0; i < 3; i++) enemies2.add(EntityType.PIGLIN_BRUTE);
-        for (int i = 0; i < 4; i++) enemies2.add(EntityType.BLAZE);
+        for (int i = 0; i < 10; i++) enemies2.add(EntityType.WITHER_SKELETON);
+        for (int i = 0; i < 4; i++) enemies2.add(HWDeferredRegister.WARPED_MINER.get());
+        for (int i = 0; i < 5; i++) enemies2.add(EntityType.PHANTOM);
         WAVES.add(new EliteWave(enemies2));
 
         // Wave 3: End mobs
         List<EntityType<? extends Mob>> enemies3 = new ArrayList<>();
-        for (int i = 0; i < 5; i++) enemies3.add(EntityType.PHANTOM);
+        for (int i = 0; i < 6; i++) enemies3.add(EntityType.BLAZE);
         for (int i = 0; i < 10; i++) enemies3.add(EntityType.WITHER_SKELETON);
         for (int i = 0; i < 5; i++) enemies3.add(HWDeferredRegister.WARPED_MINER.get()); // WARPED MINERS
         WAVES.add(new EliteWave(enemies3));

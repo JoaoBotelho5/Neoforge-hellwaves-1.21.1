@@ -1,49 +1,139 @@
 {
   "elite_wave1": {
-    "mainhand": "minecraft:iron_sword",
-    "offhand": "minecraft:shield",
-    "helmet": "minecraft:iron_helmet",
-    "chestplate": "minecraft:iron_chestplate",
-    "leggings": "minecraft:iron_leggings",
-    "boots": "minecraft:iron_boots",
-    "effects": [
-      {"effect": "minecraft:strength", "duration": 999999, "amplifier": 0}
-    ]
+    "mainhand": [
+      { "item": "minecraft:iron_sword", "weight": 70 },
+      { "item": "minecraft:diamond_sword", "weight": 30 }
+    ],
+    "offhand": [
+      { "item": "minecraft:shield", "weight": 100 }
+    ],
+    "armor": {
+      "head": [
+        { "item": "minecraft:iron_helmet", "weight": 80 },
+        { "item": "minecraft:diamond_helmet", "weight": 20 }
+      ],
+      "chest": [
+        { "item": "minecraft:iron_chestplate", "weight": 80 },
+        { "item": "minecraft:diamond_chestplate", "weight": 20 }
+      ],
+      "legs": [
+        { "item": "minecraft:iron_leggings", "weight": 80 },
+        { "item": "minecraft:diamond_leggings", "weight": 20 }
+      ],
+      "feet": [
+        { "item": "minecraft:iron_boots", "weight": 80 },
+        { "item": "minecraft:diamond_boots", "weight": 20 }
+      ]
+    }
   },
   "elite_wave2": {
-    "mainhand": "minecraft:diamond_sword",
-    "offhand": "minecraft:shield",
-    "helmet": "minecraft:diamond_helmet",
-    "chestplate": "minecraft:diamond_chestplate",
-    "leggings": "minecraft:diamond_leggings",
-    "boots": "minecraft:diamond_boots"
-
+    "mainhand": [
+      { "item": "minecraft:diamond_sword", "weight": 70 },
+      { "item": "minecraft:diamond_axe", "weight": 20 },
+      { "item": "minecraft:iron_axe", "weight": 10 }
+    ],
+    "offhand": [
+      { "item": "minecraft:shield", "weight": 90 },
+      { "item": "minecraft:totem_of_undying", "weight": 10 }
+    ],
+    "armor": {
+      "head": [
+        { "item": "minecraft:diamond_helmet", "weight": 80 },
+        { "item": "minecraft:iron_helmet", "weight": 20 }
+      ],
+      "chest": [
+        { "item": "minecraft:diamond_chestplate", "weight": 80 },
+        { "item": "minecraft:iron_chestplate", "weight": 20 }
+      ],
+      "legs": [
+        { "item": "minecraft:diamond_leggings", "weight": 80 },
+        { "item": "minecraft:iron_leggings", "weight": 20 }
+      ],
+      "feet": [
+        { "item": "minecraft:diamond_boots", "weight": 80 },
+        { "item": "minecraft:iron_boots", "weight": 20 }
+      ]
+    }
   },
   "elite_wave3": {
-    "mainhand": "minecraft:diamond_sword",
-    "offhand": "minecraft:shield",
-    "helmet": "minecraft:diamond_helmet",
-    "chestplate": "minecraft:diamond_chestplate",
-    "leggings": "minecraft:diamond_leggings",
-    "boots": "minecraft:diamond_boots"
-
+    "mainhand": [
+      { "item": "minecraft:diamond_sword", "weight": 60 },
+      { "item": "minecraft:diamond_axe", "weight": 25 },
+      { "item": "minecraft:netherite_sword", "weight": 15 }
+    ],
+    "offhand": [
+      { "item": "minecraft:shield", "weight": 70 },
+      { "item": "minecraft:totem_of_undying", "weight": 30 }
+    ],
+    "armor": {
+      "head": [
+        { "item": "minecraft:diamond_helmet", "weight": 70 },
+        { "item": "minecraft:netherite_helmet", "weight": 30 }
+      ],
+      "chest": [
+        { "item": "minecraft:diamond_chestplate", "weight": 70 },
+        { "item": "minecraft:netherite_chestplate", "weight": 30 }
+      ],
+      "legs": [
+        { "item": "minecraft:diamond_leggings", "weight": 70 },
+        { "item": "minecraft:netherite_leggings", "weight": 30 }
+      ],
+      "feet": [
+        { "item": "minecraft:diamond_boots", "weight": 70 },
+        { "item": "minecraft:netherite_boots", "weight": 30 }
+      ]
+    }
   },
   "elite_wave4": {
-    "mainhand": "minecraft:netherite_sword",
-    "offhand": "minecraft:totem_of_undying",
-    "helmet": "minecraft:netherite_helmet",
-    "chestplate": "minecraft:netherite_chestplate",
-    "leggings": "minecraft:netherite_leggings",
-    "boots": "minecraft:netherite_boots"
-
+    "mainhand": [
+      { "item": "minecraft:netherite_sword", "weight": 50 },
+      { "item": "minecraft:netherite_axe", "weight": 30 },
+      { "item": "minecraft:diamond_sword", "weight": 20 }
+    ],
+    "offhand": [
+      { "item": "minecraft:totem_of_undying", "weight": 60 },
+      { "item": "minecraft:shield", "weight": 40 }
+    ],
+    "armor": {
+      "head": [
+        { "item": "minecraft:netherite_helmet", "weight": 80 },
+        { "item": "minecraft:diamond_helmet", "weight": 20 }
+      ],
+      "chest": [
+        { "item": "minecraft:netherite_chestplate", "weight": 80 },
+        { "item": "minecraft:diamond_chestplate", "weight": 20 }
+      ],
+      "legs": [
+        { "item": "minecraft:netherite_leggings", "weight": 80 },
+        { "item": "minecraft:diamond_leggings", "weight": 20 }
+      ],
+      "feet": [
+        { "item": "minecraft:netherite_boots", "weight": 80 },
+        { "item": "minecraft:diamond_boots", "weight": 20 }
+      ]
+    }
   },
   "elite_wave5": {
-    "mainhand": "minecraft:netherite_sword",
-    "offhand": "minecraft:totem_of_undying",
-    "helmet": "minecraft:netherite_helmet",
-    "chestplate": "minecraft:netherite_chestplate",
-    "leggings": "minecraft:netherite_leggings",
-    "boots": "minecraft:netherite_boots"
-
+    "mainhand": [
+      { "item": "minecraft:netherite_sword", "weight": 60 },
+      { "item": "minecraft:netherite_axe", "weight": 40 }
+    ],
+    "offhand": [
+      { "item": "minecraft:totem_of_undying", "weight": 100 }
+    ],
+    "armor": {
+      "head": [
+        { "item": "minecraft:netherite_helmet", "weight": 100 }
+      ],
+      "chest": [
+        { "item": "minecraft:netherite_chestplate", "weight": 100 }
+      ],
+      "legs": [
+        { "item": "minecraft:netherite_leggings", "weight": 100 }
+      ],
+      "feet": [
+        { "item": "minecraft:netherite_boots", "weight": 100 }
+      ]
+    }
   }
 }

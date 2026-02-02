@@ -58,12 +58,12 @@ public class EliteWave {
 
                 mob.moveTo(x, y, z, 0.0F, 0.0F);
 
-                // Configuração especial para WarpedMiner
+                // ConfiguraÃ§Ã£o especial para WarpedMiner
                 if (mob instanceof WarpedMiner warpedMiner) {
                     warpedMiner.setTargetBlock(pos); // Define o bloco alvo como o ativador
                 }
 
-                // Configuração especial para Warden
+                // ConfiguraÃ§Ã£o especial para Warden
                 if (mob instanceof Warden warden && world instanceof ServerLevel serverLevel) {
                     DifficultyInstance difficulty = serverLevel.getCurrentDifficultyAt(mob.blockPosition());
 
@@ -89,13 +89,13 @@ public class EliteWave {
 
                 world.addFreshEntity(mob);
 
-                // Aplica equipamento se houver configuração
+                // Aplica equipamento se houver configuraÃ§Ã£o
                 if (waveConfig != null) {
                     EliteEquipmentHelper.applyGear(mob, waveConfig);
                 }
 
-                // CRITICAL: WarpedMiner já tem seus próprios goals de mining e movimento
-                // Não adicionar WalkCenterGoal pois interfere com a mineração
+                // CRITICAL: WarpedMiner jÃ¡ tem seus prÃ³prios goals de mining e movimento
+                // NÃ£o adicionar WalkCenterGoal pois interfere com a mineraÃ§Ã£o
                 if (!(mob instanceof WarpedMiner)) {
                     mob.goalSelector.addGoal(1, new Wave.WalkCenterGoal(mob, pos, 1.2)); // Faster movement
                 }
