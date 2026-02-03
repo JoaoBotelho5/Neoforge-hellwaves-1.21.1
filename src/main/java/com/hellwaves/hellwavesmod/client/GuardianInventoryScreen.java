@@ -123,11 +123,18 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
     }
 
     private void drawGuardianStats(GuiGraphics guiGraphics, int x, int y) {
+        LivingEntity guardian = this.menu.getGuardianEntity();
         // Dados sincronizados
         float currentHealth = this.menu.getGuardianHealth();
         float maxHealth = this.menu.getGuardianMaxHealth();
-        double attackDamage = this.menu.getGuardianAttackDamage();
-        double armorValue = this.menu.getGuardianArmor();
+        double baseDamage = guardian != null
+                ? guardian.getAttributeBaseValue(Attributes.ATTACK_DAMAGE)
+                : 0.0;
+
+        double weaponBonus = guardian != null
+                ? getWeaponDamage(guardian.getItemBySlot(EquipmentSlot.MAINHAND))
+                : 0.0;
+        double attackDamage = baseDamage + weaponBonus;        double armorValue = this.menu.getGuardianArmor();
         double armorToughness = this.menu.getGuardianToughness();
         int currentLevel = this.menu.getGuardianLevel();  // FIXED: Use synced level
 
@@ -302,7 +309,7 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
     private double getWeaponDamage(ItemStack stack) {
         if (stack.isEmpty()) return 0.0;
 
-        double totalDamage = 0.0;
+        double totalDamage = 1.0;
         var modifiers = stack.getAttributeModifiers();
 
         for (var entry : modifiers.modifiers()) {

@@ -4,6 +4,7 @@ import com.hellwaves.hellwavesmod.HWMobs.SkeletonGuardian;
 import com.hellwaves.hellwavesmod.client.GuardianInventoryScreen;
 import com.hellwaves.hellwavesmod.client.SkeletonGuardianRenderer;
 import com.hellwaves.hellwavesmod.client.WarpedMinerRenderer;
+import com.hellwaves.hellwavesmod.client.ZombieGuardianRenderer;
 import com.hellwaves.hellwavesmod.inventory.ModMenuTypes;
 import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
 import net.minecraft.client.renderer.entity.ZombieRenderer;
@@ -31,7 +32,7 @@ public class HWClientSetup {
 
         // ADICIONE ESTA LINHA PARA O ZOMBIE GUARDIAN
         event.registerEntityRenderer(HWDeferredRegister.ZOMBIE_GUARDIAN.get(),
-                context -> new ZombieRenderer(context) // Usa o mesmo renderer de zombie
+                context -> new ZombieGuardianRenderer(context) // Usa o mesmo renderer de zombie
         );
         // ADICIONE ESTA LINHA PARA O ZOMBIE GUARDIAN
         event.registerEntityRenderer(HWDeferredRegister.SKELETON_GUARDIAN.get(),
