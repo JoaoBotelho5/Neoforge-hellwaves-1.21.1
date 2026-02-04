@@ -1,19 +1,22 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    " E ",
-    "PEP",
-    " O "
+    "BCB",
+    "BAB",
+    "BDB"
   ],
   "key": {
-    "E": {
+    "A": {
+      "item": "minecraft:crying_obsidian"
+    },
+    "B": {
+      "item": "minecraft:ender_eye"
+    },
+    "C": {
       "item": "hellwavesmod:echo_resonator"
     },
-    "P": {
-      "item": "minecraft:ender_pearl"
-    },
-    "O": {
-      "item": "minecraft:obsidian"
+    "D": {
+      "item": "minecraft:nether_star"
     }
   },
   "result": {
