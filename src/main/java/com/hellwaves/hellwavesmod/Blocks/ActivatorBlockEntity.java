@@ -9,6 +9,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
@@ -81,9 +82,10 @@ public class ActivatorBlockEntity extends BlockEntity {
     }
 
     public void checkCompletion(ServerLevel world) {
-        // If all waves are done and no active mobs remain
+        // Se todas as waves terminaram e não há mobs ativos
         if (nextWave > MAX_WAVES && activeMobs.isEmpty()) {
             if (!world.isClientSide) {
+                // --- Drops de itens existentes ---
                 ItemStack[] drops = {
                         new ItemStack(Items.EMERALD_BLOCK, 5),
                         new ItemStack(Items.DIAMOND_BLOCK, 3),
@@ -92,14 +94,43 @@ public class ActivatorBlockEntity extends BlockEntity {
                 };
 
                 for (ItemStack stack : drops) {
-                    world.addFreshEntity(new ItemEntity(world, worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5, stack));
+                    world.addFreshEntity(new ItemEntity(
+                            world,
+                            worldPosition.getX() + 0.5,
+                            worldPosition.getY() + 0.5,
+                            worldPosition.getZ() + 0.5,
+                            stack
+                    ));
                 }
 
-                // Remove the block
+                // --- Drop de XP orbs (aprox. 35-40 níveis) ---
+                int minLevels = 35;
+                int maxLevels = 40;
+                int levels = minLevels + world.random.nextInt(maxLevels - minLevels + 1);
+
+                // Aproximação: cada nível = 7 XP points
+                int totalXP = levels * 24;
+
+                while (totalXP > 0) {
+                    // Cria orbs do tamanho máximo que o jogo suporta
+                    int orbXP = ExperienceOrb.getExperienceValue(totalXP);
+                    totalXP -= orbXP;
+
+                    world.addFreshEntity(new ExperienceOrb(
+                            world,
+                            worldPosition.getX() + 0.5,
+                            worldPosition.getY() + 0.5,
+                            worldPosition.getZ() + 0.5,
+                            orbXP
+                    ));
+                }
+
+                // Remove o bloco após dropar itens e XP
                 world.removeBlock(worldPosition, false);
             }
         }
     }
+
 
     public void tick(ServerLevel world) {
         // If we have UUIDs to resolve (from loading), resolve them first

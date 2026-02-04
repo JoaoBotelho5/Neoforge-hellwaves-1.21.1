@@ -9,6 +9,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
@@ -91,6 +92,27 @@ public class EliteActivatorBlockEntity extends BlockEntity {
 
                 for (ItemStack stack : drops) {
                     world.addFreshEntity(new ItemEntity(world, worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5, stack));
+                }
+
+                // --- Drop de XP
+                int minLevels = 35;
+                int maxLevels = 40;
+                int levels = minLevels + world.random.nextInt(maxLevels - minLevels + 1);
+
+                // Aproximação: cada nível = 24 XP points
+                int totalXP = levels * 50;
+
+                while (totalXP > 0) {
+                    int orbXP = ExperienceOrb.getExperienceValue(totalXP);
+                    totalXP -= orbXP;
+
+                    world.addFreshEntity(new ExperienceOrb(
+                            world,
+                            worldPosition.getX() + 0.5,
+                            worldPosition.getY() + 0.5,
+                            worldPosition.getZ() + 0.5,
+                            orbXP
+                    ));
                 }
 
                 world.removeBlock(worldPosition, false);
