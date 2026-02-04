@@ -8,13 +8,13 @@ import com.hellwaves.hellwavesmod.HWMobs.WarpedMiner;
 import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
 import com.hellwaves.hellwavesmod.HellwavesMod;
 import com.hellwaves.hellwavesmod.Items.*;
+import com.hellwaves.hellwavesmod.Tiers.GreatswordTier;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.SwordItem;
-import net.minecraft.world.item.Tiers;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.neoforged.bus.api.IEventBus;
@@ -134,6 +134,18 @@ public class HWDeferredRegister {
             )
     );
 
+    public static final DeferredHolder<Item, Item> ECHO_RESONATOR =
+            ITEMS.register("echo_resonator",
+                    () -> new Item(new Item.Properties().stacksTo(1))
+            );
+
+    public static final DeferredHolder<Item, Item> RECALLER =
+            ITEMS.register("recaller",
+                    () -> new Recaller(
+                            new Item.Properties().stacksTo(1)
+                    )
+            );
+
     public static final DeferredHolder<Item, Item> GREAT_SWORD = ITEMS.register(
             "greatsword",
             () -> new GreatswordItem(
@@ -142,16 +154,12 @@ public class HWDeferredRegister {
                             .attributes(
                                     SwordItem.createAttributes(
                                             new GreatswordTier(), // tier do material
-                                            4.0F,                 // extra attack damage tipo espada
+                                            2.0F,                 // extra attack damage tipo espada
                                             -3.0F                 // attack speed
                                     )
                             )
             )
     );
-
-
-
-
 
     public static void registerAttributes(IEventBus modEventBus) {
         modEventBus.addListener(HWDeferredRegister::onEntityAttributeCreation);

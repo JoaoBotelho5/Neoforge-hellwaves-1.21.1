@@ -1,5 +1,6 @@
 package com.hellwaves.hellwavesmod.Items;
 
+import com.hellwaves.hellwavesmod.Tiers.GreatswordTier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.SwordItem;
 

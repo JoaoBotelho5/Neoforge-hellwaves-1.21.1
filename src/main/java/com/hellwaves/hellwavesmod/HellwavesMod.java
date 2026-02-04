@@ -2,6 +2,7 @@ package com.hellwaves.hellwavesmod;
 
 
 import com.hellwaves.hellwavesmod.Blocks.ModBlockEntities;
+import com.hellwaves.hellwavesmod.Items.Recaller;
 import com.hellwaves.hellwavesmod.equipment.EquipmentConfig;
 import com.hellwaves.hellwavesmod.inventory.ModMenuTypes;
 import com.hellwaves.hellwavesmod.packets.Modpackets;
@@ -34,6 +35,10 @@ public class HellwavesMod {
         NeoForge.EVENT_BUS.register(new ZombieGuardianEvents());
 
         NeoForge.EVENT_BUS.register(new SkeletonGuardianEvents());
+
+        NeoForge.EVENT_BUS.register(WardenDropEvents.class);
+
+        NeoForge.EVENT_BUS.register(Recaller.class);
 
         modBus.addListener(HWCreativeEvents::onBuildCreativeTab);
 

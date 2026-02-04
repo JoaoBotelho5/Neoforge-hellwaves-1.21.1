@@ -1,4 +1,4 @@
-package com.hellwaves.hellwavesmod.Items;
+package com.hellwaves.hellwavesmod.Tiers;
 
 import net.minecraft.world.item.Tier;
 import net.minecraft.world.item.crafting.Ingredient;

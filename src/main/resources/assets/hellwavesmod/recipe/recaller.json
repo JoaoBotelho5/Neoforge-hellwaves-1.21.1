@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " E ",
+    "PEP",
+    " O "
+  ],
+  "key": {
+    "E": {
+      "item": "hellwavesmod:echo_resonator"
+    },
+    "P": {
+      "item": "minecraft:ender_pearl"
+    },
+    "O": {
+      "item": "minecraft:obsidian"
+    }
+  },
+  "result": {
+    "item": "hellwavesmod:recaller",
+    "count": 1
+  }
+}

@@ -85,9 +85,10 @@ public class ActivatorBlockEntity extends BlockEntity {
         if (nextWave > MAX_WAVES && activeMobs.isEmpty()) {
             if (!world.isClientSide) {
                 ItemStack[] drops = {
-                        new ItemStack(Items.DIAMOND_BLOCK, 1),
-                        new ItemStack(Items.EMERALD_BLOCK, 1),
-                        new ItemStack(Items.ANCIENT_DEBRIS, 1)
+                        new ItemStack(Items.EMERALD_BLOCK, 5),
+                        new ItemStack(Items.DIAMOND_BLOCK, 3),
+                        new ItemStack(Items.ANCIENT_DEBRIS, 2),
+                        new ItemStack(Items.ECHO_SHARD, 1)
                 };
 
                 for (ItemStack stack : drops) {
