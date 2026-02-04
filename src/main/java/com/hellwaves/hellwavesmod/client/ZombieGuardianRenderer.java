@@ -15,7 +15,7 @@ import net.minecraft.world.item.Items;
 
 public class ZombieGuardianRenderer extends HumanoidMobRenderer<ZombieGuardian, ZombieModel<ZombieGuardian>> {
     private static final ResourceLocation ZOMBIE_GUARDIAN_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath("hellwavesmod", "textures/entity/fallen.png");
+            ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/zombie/zombie.png");
 
     public ZombieGuardianRenderer(EntityRendererProvider.Context context) {
         super(context, new ZombieModel<>(context.bakeLayer(ModelLayers.ZOMBIE)), 0.5F);
