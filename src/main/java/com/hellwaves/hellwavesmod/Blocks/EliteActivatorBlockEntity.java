@@ -23,14 +23,14 @@ import java.util.List;
 import java.util.UUID;
 
 public class EliteActivatorBlockEntity extends BlockEntity {
-    public static final int MAX_WAVES = 5; // More waves for elite version
-    private static final int GLOWING_DELAY = 2000; // 100 segundos (20 ticks por segundo * 100)
+    public static final int MAX_WAVES = 5; // wave numbers
+    private static final int GLOWING_DELAY = 2000; // 100 segundos
 
 
     public int nextWave = 1;
     public int tickCountdown = 0;
     public final List<Mob> activeMobs = new ArrayList<>();
-    public int glowingCountdown = 0; // Novo contador para glowing
+    public int glowingCountdown = 0; //contador para glowing
     private final List<UUID> activeMobUUIDs = new ArrayList<>();
 
     public EliteActivatorBlockEntity(BlockPos pos, BlockState state) {
@@ -82,12 +82,12 @@ public class EliteActivatorBlockEntity extends BlockEntity {
     public void checkCompletion(ServerLevel world) {
         if (nextWave > MAX_WAVES && activeMobs.isEmpty()) {
             if (!world.isClientSide) {
-                // Better rewards for elite version
+                // REWARDS
                 ItemStack[] drops = {
                         new ItemStack(Items.NETHER_STAR, 1),
                         new ItemStack(Items.NETHERITE_SCRAP, 2),
                         new ItemStack(Items.ANCIENT_DEBRIS, 4),
-                        new ItemStack(Items.EMERALD_BLOCK, 5),
+                        new ItemStack(Items.DIAMOND_BLOCK, 5),
                 };
 
                 for (ItemStack stack : drops) {
@@ -99,7 +99,7 @@ public class EliteActivatorBlockEntity extends BlockEntity {
                 int maxLevels = 40;
                 int levels = minLevels + world.random.nextInt(maxLevels - minLevels + 1);
 
-                // Aproximação: cada nível = 24 XP points
+
                 int totalXP = levels * 50;
 
                 while (totalXP > 0) {
@@ -188,7 +188,6 @@ public class EliteActivatorBlockEntity extends BlockEntity {
     private void applyGlowingToAllMobs(ServerLevel world) {
         for (Mob mob : activeMobs) {
             if (mob.isAlive() && !mob.isRemoved()) {
-                // Versão mais direta
                 mob.addEffect(new MobEffectInstance(
                         net.minecraft.world.effect.MobEffects.GLOWING,
                         999999,
