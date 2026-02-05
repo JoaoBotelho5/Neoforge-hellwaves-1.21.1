@@ -13,7 +13,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
@@ -58,14 +58,26 @@ public class Recaller extends Item {
         BlockPos respawnPos = sp.getRespawnPosition();
         ServerLevel respawnWorld = null;
 
-        // Only teleport to respawn if it's a valid bed
+        // Obter a dimensão do respawn (se definida)
         if (respawnPos != null && sp.getRespawnDimension() != null) {
             respawnWorld = (ServerLevel) sp.level().getServer().getLevel(sp.getRespawnDimension());
 
             if (respawnWorld != null) {
-                // Check if the block at respawnPos is a bed
-                if (!(respawnWorld.getBlockState(respawnPos).getBlock() instanceof BedBlock)) {
-                    respawnPos = null; // Bed destroyed, fallback to world spawn
+                // Verificação robusta:
+                // - Se houver um bloco nesse local -> ok
+                // - Se não houver bloco (air) mas o respawn estiver "forçado" pelo server/mod -> ok
+                // - Caso contrário, considerar inválido (p.ex. bed/hammock destruída)
+                try {
+                    BlockState state = respawnWorld.getBlockState(respawnPos);
+                    boolean blockPresent = !state.isAir();
+                    boolean forced = sp.isRespawnForced(); // permite compatibilidade com mods que forçam respawn mesmo sem bloco
+                    if (!blockPresent && !forced) {
+                        // bed/hammock (ou outro bloco) foi removido — não usar este respawn
+                        respawnPos = null;
+                    }
+                } catch (Exception ex) {
+                    // Em caso de qualquer erro ao ler o bloco (out-of-bounds, etc.), descartar o respawn pos
+                    respawnPos = null;
                 }
             }
         }
