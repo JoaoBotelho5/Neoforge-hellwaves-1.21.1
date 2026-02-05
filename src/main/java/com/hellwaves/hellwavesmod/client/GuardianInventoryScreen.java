@@ -391,4 +391,79 @@ public class GuardianInventoryScreen extends AbstractContainerScreen<GuardianInv
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         // Não renderizar labels padrão
     }
+
+    @Override
+    protected void renderTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        super.renderTooltip(guiGraphics, mouseX, mouseY);
+
+        // Check if hovering over level text area or upgrade button
+        int statsX = this.leftPos + 170;
+        int levelY = this.topPos + 25 + 5 + 12; // Stats start Y + title + level line
+
+        boolean hoveringLevel = mouseX >= statsX && mouseX <= statsX + 80 &&
+                mouseY >= levelY && mouseY <= levelY + 10;
+        boolean hoveringUpgrade = upgradeButton != null && upgradeButton.isHovered();
+
+        if (hoveringLevel || hoveringUpgrade) {
+            renderLevelTooltip(guiGraphics, mouseX, mouseY);
+        }
+    }
+
+    private void renderLevelTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        LivingEntity guardianEntity = this.menu.getGuardianEntity();
+        if (guardianEntity == null) return;
+
+        int currentLevel = this.menu.getGuardianLevel();
+        java.util.List<Component> tooltip = new java.util.ArrayList<>();
+
+        // Detect guardian type
+        boolean isSkeleton = guardianEntity instanceof com.hellwaves.hellwavesmod.HWMobs.SkeletonGuardian;
+
+        tooltip.add(Component.literal("§6=== Guardian Abilities ==="));
+        tooltip.add(Component.literal(""));
+
+        if (isSkeleton) {
+            // Skeleton Guardian abilities
+            tooltip.add(Component.literal(currentLevel >= 1 ? "§a✓ Level 1: Base Stats" : "§7✗ Level 1: Base Stats"));
+            tooltip.add(Component.literal("  §820 HP, 1 HP/5s regen"));
+            tooltip.add(Component.literal(""));
+
+            tooltip.add(Component.literal(currentLevel >= 2 ? "§a✓ Level 2: Resistance I" : "§7✗ Level 2: Resistance I"));
+            tooltip.add(Component.literal("  §8Permanent damage reduction"));
+            tooltip.add(Component.literal(""));
+
+            tooltip.add(Component.literal(currentLevel >= 3 ? "§a✓ Level 3: Health Boost" : "§7✗ Level 3: Health Boost"));
+            tooltip.add(Component.literal("  §8+5 Max HP, 2 HP/5s regen"));
+            tooltip.add(Component.literal(""));
+
+            tooltip.add(Component.literal(currentLevel >= 4 ? "§a✓ Level 4: Rapid Fire" : "§7✗ Level 4: Rapid Fire"));
+            tooltip.add(Component.literal("  §8Every 5th arrow fires faster"));
+            tooltip.add(Component.literal(""));
+
+            tooltip.add(Component.literal(currentLevel >= 5 ? "§a✓ Level 5: Effect Arrows" : "§7✗ Level 5: Effect Arrows"));
+            tooltip.add(Component.literal("  §8Shoots offhand arrow type"));
+        } else {
+            // Zombie Guardian abilities
+            tooltip.add(Component.literal(currentLevel >= 1 ? "§a✓ Level 1: Base Stats" : "§7✗ Level 1: Base Stats"));
+            tooltip.add(Component.literal("  §830 HP, 1 HP/5s regen"));
+            tooltip.add(Component.literal(""));
+
+            tooltip.add(Component.literal(currentLevel >= 2 ? "§a✓ Level 2: Enhanced" : "§7✗ Level 2: Enhanced"));
+            tooltip.add(Component.literal("  §840 HP, 2 HP/5s regen"));
+            tooltip.add(Component.literal(""));
+
+            tooltip.add(Component.literal(currentLevel >= 3 ? "§a✓ Level 3: Resistance I" : "§7✗ Level 3: Resistance I"));
+            tooltip.add(Component.literal("  §8Permanent damage reduction"));
+            tooltip.add(Component.literal(""));
+
+            tooltip.add(Component.literal(currentLevel >= 4 ? "§a✓ Level 4: Shield Master" : "§7✗ Level 4: Shield Master"));
+            tooltip.add(Component.literal("  §835% chance to block damage if holding a shield"));
+            tooltip.add(Component.literal(""));
+
+            tooltip.add(Component.literal(currentLevel >= 5 ? "§a✓ Level 5: AOE Strike" : "§7✗ Level 5: AOE Strike"));
+            tooltip.add(Component.literal("  §8Damages nearby enemies (1.5 blocks,7.5 seconds)"));
+        }
+
+        guiGraphics.renderTooltip(this.font, tooltip, java.util.Optional.empty(), mouseX, mouseY);
+    }
 }
