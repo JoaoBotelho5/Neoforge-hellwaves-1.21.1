@@ -13,6 +13,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BedBlock;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
@@ -57,8 +58,16 @@ public class Recaller extends Item {
         BlockPos respawnPos = sp.getRespawnPosition();
         ServerLevel respawnWorld = null;
 
+        // Only teleport to respawn if it's a valid bed
         if (respawnPos != null && sp.getRespawnDimension() != null) {
             respawnWorld = (ServerLevel) sp.level().getServer().getLevel(sp.getRespawnDimension());
+
+            if (respawnWorld != null) {
+                // Check if the block at respawnPos is a bed
+                if (!(respawnWorld.getBlockState(respawnPos).getBlock() instanceof BedBlock)) {
+                    respawnPos = null; // Bed destroyed, fallback to world spawn
+                }
+            }
         }
 
         boolean teleported = false;
@@ -86,7 +95,6 @@ public class Recaller extends Item {
 
         // Send on-screen action-bar/status messages to the client
         if (teleported) {
-            // action-bar (above hotbar)
             sp.connection.send(new ClientboundSetActionBarTextPacket(Component.literal("§aTeleport successful!")));
         } else {
             sp.connection.send(new ClientboundSetActionBarTextPacket(Component.literal("§cTeleport failed: no spawn set!")));
