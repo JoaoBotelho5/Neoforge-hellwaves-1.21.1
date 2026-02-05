@@ -145,6 +145,10 @@ public class HWDeferredRegister {
                             new Item.Properties().stacksTo(1)
                     )
             );
+    public static final DeferredHolder<Item, Item> SOULTETHER =
+            ITEMS.register("soul_tether",
+                    () -> new SoulTether(new Item.Properties().stacksTo(1))
+            );
 
     public static final DeferredHolder<Item, Item> GREAT_SWORD = ITEMS.register(
             "greatsword",

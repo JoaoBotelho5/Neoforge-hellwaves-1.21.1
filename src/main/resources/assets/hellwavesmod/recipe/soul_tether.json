@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " C ",
+    "BAB",
+    " C "
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:echo_shard"
+    },
+    "B": {
+      "item": "minecraft:saddle"
+    },
+    "C": {
+      "item": "minecraft:netherite_scrap"
+    }
+  },
+  "result": {
+    "item": "hellwavesmod:soul_tether",
+    "count": 1
+  }
+}
