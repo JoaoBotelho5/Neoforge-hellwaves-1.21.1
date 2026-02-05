@@ -37,16 +37,6 @@ public class ActivatorBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return Shapes.block(); // Full block collision
-    }
-
-    @Override
-    public VoxelShape getOcclusionShape(BlockState state, BlockGetter level, BlockPos pos) {
-        return Shapes.block(); // This is the KEY method - tells adjacent blocks this is solid
-    }
-
-    @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(LEVEL);
     }
@@ -60,22 +50,7 @@ public class ActivatorBlock extends Block implements EntityBlock {
 
     @Override
     public RenderShape getRenderShape(BlockState state) {
-        return RenderShape.MODEL;  // Render as a normal model
-    }
-
-    @Override
-    public boolean propagatesSkylightDown(BlockState state, BlockGetter reader, BlockPos pos) {
-        return false;  // Block doesn't let skylight through
-    }
-
-    @Override
-    public int getLightBlock(BlockState state, BlockGetter worldIn, BlockPos pos) {
-        return 15;  // Block is fully opaque
-    }
-
-    @Override
-    public float getShadeBrightness(BlockState state, BlockGetter worldIn, BlockPos pos) {
-        return 0.2F;  // Make it cast proper shadows
+        return RenderShape.MODEL;
     }
 
     @Override
@@ -88,15 +63,6 @@ public class ActivatorBlock extends Block implements EntityBlock {
         return Shapes.block();  // Full block shape for rendering
     }
 
-    @Override
-    public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
-        return Shapes.block();  // Full block collision
-    }
-
-    @Override
-    public boolean useShapeForLightOcclusion(BlockState state) {
-        return true;  // Use the shape to calculate light occlusion
-    }
 
     @Override
     protected boolean isOcclusionShapeFullBlock(BlockState state, BlockGetter level, BlockPos pos) {
@@ -125,11 +91,11 @@ public class ActivatorBlock extends Block implements EntityBlock {
             int portalLevel = 1;
 
             if (currentWave >= 3) {
-                portalLevel = 3; // Wave 3+ = portal grande
+                portalLevel = 3; // Wave 3
             } else if (currentWave >= 2) {
-                portalLevel = 2; // Wave 2 = portal médio
+                portalLevel = 2; // Wave 2
             } else {
-                portalLevel = 1; // Wave 1 = portal pequeno
+                portalLevel = 1; // Wave 1
             }
 
             // Verificar novamente se o bloco ainda existe antes de atualizar
@@ -169,12 +135,12 @@ public class ActivatorBlock extends Block implements EntityBlock {
 
                 if (horizontalDistanceSqr <= DOUBLE_ACTIVATION_RADIUS_SQR) {
                     explode(world, pos, blockEntity);
-                    return; // NÃO AGENDAR MAIS TICKS
+                    return;
                 }
             }
         }
 
-        // Verificar se completou todas as waves
+
         if (blockEntity.activeMobs.isEmpty() && blockEntity.nextWave > ActivatorBlockEntity.MAX_WAVES) {
             // Todas as waves completas e sem mobs - remover o bloco
             world.removeBlock(pos, false);

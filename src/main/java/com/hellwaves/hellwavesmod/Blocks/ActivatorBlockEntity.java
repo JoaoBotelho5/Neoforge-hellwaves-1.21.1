@@ -25,11 +25,11 @@ import java.util.UUID;
 public class ActivatorBlockEntity extends BlockEntity {
 
     public static final int MAX_WAVES = 3;
-    private static final int GLOWING_DELAY = 2000; // 100 segundos (20 ticks por segundo * 100)
+    private static final int GLOWING_DELAY = 2000; // 100 segundos
 
     public int nextWave = 1;
     public int tickCountdown = 0;
-    public int glowingCountdown = 0; // Novo contador para glowing
+    public int glowingCountdown = 0; //contador para glowing
     public final List<Mob> activeMobs = new ArrayList<>();
     private final List<UUID> activeMobUUIDs = new ArrayList<>(); // For persistence
 
@@ -61,7 +61,7 @@ public class ActivatorBlockEntity extends BlockEntity {
         nextWave = tag.getInt("NextWave");
         tickCountdown = tag.getInt("TickCountdown");
 
-        // Load mob UUIDs - we'll resolve them to actual mobs in the tick method
+        // Load mob UUIDs
         activeMobUUIDs.clear();
         ListTag mobList = tag.getList("ActiveMobs", Tag.TAG_COMPOUND);
         for (int i = 0; i < mobList.size(); i++) {
@@ -103,16 +103,16 @@ public class ActivatorBlockEntity extends BlockEntity {
                     ));
                 }
 
-                // --- Drop de XP orbs (aprox. 35-40 níveis) ---
+                // --- Drop de XP orbs
                 int minLevels = 35;
                 int maxLevels = 40;
                 int levels = minLevels + world.random.nextInt(maxLevels - minLevels + 1);
 
-                // Aproximação: cada nível = 7 XP points
+
                 int totalXP = levels * 24;
 
                 while (totalXP > 0) {
-                    // Cria orbs do tamanho máximo que o jogo suporta
+
                     int orbXP = ExperienceOrb.getExperienceValue(totalXP);
                     totalXP -= orbXP;
 
@@ -202,7 +202,6 @@ public class ActivatorBlockEntity extends BlockEntity {
     private void applyGlowingToAllMobs(ServerLevel world) {
         for (Mob mob : activeMobs) {
             if (mob.isAlive() && !mob.isRemoved()) {
-                // Versão mais direta
                 mob.addEffect(new MobEffectInstance(
                         net.minecraft.world.effect.MobEffects.GLOWING,
                         999999,
