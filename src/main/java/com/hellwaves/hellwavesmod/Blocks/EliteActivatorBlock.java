@@ -36,7 +36,20 @@ public class EliteActivatorBlock extends Block implements EntityBlock {
         this.registerDefaultState(this.stateDefinition.any().setValue(LEVEL, 1));
     }
 
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return Shapes.block(); // Full block collision
+    }
 
+    @Override
+    public VoxelShape getOcclusionShape(BlockState state, BlockGetter level, BlockPos pos) {
+        return Shapes.block(); // This is the KEY method - tells adjacent blocks this is solid
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(LEVEL);
+    }
 
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
@@ -51,6 +64,21 @@ public class EliteActivatorBlock extends Block implements EntityBlock {
     }
 
     @Override
+    public boolean propagatesSkylightDown(BlockState state, BlockGetter reader, BlockPos pos) {
+        return false;  // Block doesn't let skylight through
+    }
+
+    @Override
+    public int getLightBlock(BlockState state, BlockGetter worldIn, BlockPos pos) {
+        return 15;  // Block is fully opaque
+    }
+
+    @Override
+    public float getShadeBrightness(BlockState state, BlockGetter worldIn, BlockPos pos) {
+        return 0.2F;  // Make it cast proper shadows
+    }
+
+    @Override
     public boolean skipRendering(BlockState state, BlockState adjacentBlockState, Direction direction) {
         return false;  // Never skip rendering any face
     }
@@ -58,6 +86,16 @@ public class EliteActivatorBlock extends Block implements EntityBlock {
     @Override
     public VoxelShape getVisualShape(BlockState state, BlockGetter reader, BlockPos pos, CollisionContext context) {
         return Shapes.block();  // Full block shape for rendering
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
+        return Shapes.block();  // Full block collision
+    }
+
+    @Override
+    public boolean useShapeForLightOcclusion(BlockState state) {
+        return true;  // Use the shape to calculate light occlusion
     }
 
     @Override
@@ -162,7 +200,7 @@ public class EliteActivatorBlock extends Block implements EntityBlock {
                 pos.getX() + 0.5,
                 pos.getY() + 0.5,
                 pos.getZ() + 0.5,
-                50.0f,
+                35.0f,
                 Level.ExplosionInteraction.BLOCK
         );
     }
