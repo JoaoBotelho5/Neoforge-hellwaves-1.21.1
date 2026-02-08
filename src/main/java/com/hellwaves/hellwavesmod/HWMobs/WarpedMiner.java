@@ -29,14 +29,6 @@ public class WarpedMiner extends ZombifiedPiglin {
     private BlockPos lastPos;
     private int stuckTicks;
 
-    // Spiral direction (0=North, 1=East, 2=South, 3=West)
-    private int spiralDirection = 0;
-    private int stepsSinceDirectionChange = 0;
-    private static final int STEPS_PER_SPIRAL = 3; // 3 blocks per side of spiral
-
-    // Track if next block should be higher
-    private boolean nextBlockGoesUp = false;
-
     // Track recently broken blocks to avoid re-placing them
     private BlockPos lastBrokenBlock = null;
     private int ticksSinceBreak = 0;
@@ -44,6 +36,10 @@ public class WarpedMiner extends ZombifiedPiglin {
     // Block placement tracking
     private int placementCooldown = 0;
     private static final int PLACEMENT_DELAY = 8;
+
+    // Stair building tracking
+    private int blocksPlacedAtCurrentHeight = 0;
+    private static final int BLOCKS_BEFORE_STEP_UP = 3; // Place 3 blocks horizontally, then step up
 
     public WarpedMiner(EntityType<? extends ZombifiedPiglin> type, Level level) {
         super(type, level);
@@ -75,7 +71,7 @@ public class WarpedMiner extends ZombifiedPiglin {
         if (ticksSinceBreak < 100) {
             ticksSinceBreak++;
         } else {
-            lastBrokenBlock = null; // Clear after 5 seconds
+            lastBrokenBlock = null;
         }
 
         // Combat handling (3-hit rule)
@@ -92,11 +88,19 @@ public class WarpedMiner extends ZombifiedPiglin {
 
         BlockPos now = this.blockPosition();
 
-        // Check if reached destination
+        // Fill any gaps below the mob to prevent falling
+        BlockPos belowMob = now.below();
+        BlockState belowState = this.level().getBlockState(belowMob);
+        if (!belowState.isSolid() && placementCooldown == 0) {
+            this.level().setBlock(belowMob, Blocks.COBBLESTONE.defaultBlockState(), 3);
+            placementCooldown = PLACEMENT_DELAY;
+        }
+
+        // Check if reached destination (must be at correct X, Z, AND Y)
         int horizontalDist = Math.abs(targetPos.getX() - now.getX()) + Math.abs(targetPos.getZ() - now.getZ());
         int verticalDist = Math.abs(targetPos.getY() - now.getY());
 
-        if (horizontalDist <= 1 && verticalDist == 0) {
+        if (horizontalDist <= 1 && verticalDist <= 1) {
             this.getNavigation().stop();
             return;
         }
@@ -130,8 +134,8 @@ public class WarpedMiner extends ZombifiedPiglin {
         // Main logic: climb or bridge
         if (placementCooldown == 0) {
             if (needsToClimb) {
-                // SPIRAL UPWARD
-                if (attemptSpiralStaircase(now)) {
+                // BUILD STAIRS
+                if (attemptBuildStairs(now)) {
                     return;
                 }
             } else {
@@ -142,88 +146,76 @@ public class WarpedMiner extends ZombifiedPiglin {
             }
         }
 
-        // Try to navigate
+        // Try to navigate toward target
         if (!this.getNavigation().isInProgress()) {
-            if (needsToClimb) {
-                // Navigate in spiral direction
-                int[] offset = getSpiralOffset();
-                BlockPos spiralTarget = now.offset(offset[0], 0, offset[1]);
-                this.getNavigation().moveTo(
-                        spiralTarget.getX() + 0.5,
-                        spiralTarget.getY(),
-                        spiralTarget.getZ() + 0.5,
-                        1.0
-                );
-            } else {
-                // Navigate toward target horizontally
-                this.getNavigation().moveTo(
-                        targetPos.getX() + 0.5,
-                        targetPos.getY(),
-                        targetPos.getZ() + 0.5,
-                        1.0
-                );
-            }
+            this.getNavigation().moveTo(
+                    targetPos.getX() + 0.5,
+                    targetPos.getY(),
+                    targetPos.getZ() + 0.5,
+                    1.0
+            );
         }
     }
 
     /**
-     * SIMPLE: Place blocks to form stairs - avoid placing on existing stairs or just-broken spots
+     * Build stairs going straight toward the target
+     * Every 3 horizontal blocks, place a step-up block
      */
-    private boolean attemptSpiralStaircase(BlockPos current) {
-        int[] offset = getSpiralOffset();
+    private boolean attemptBuildStairs(BlockPos current) {
+        // Direction toward target
+        int dx = Integer.compare(targetPos.getX(), current.getX());
+        int dz = Integer.compare(targetPos.getZ(), current.getZ());
 
-        // Position we want to place at (one block forward in spiral direction)
-        BlockPos forward = current.offset(offset[0], 0, offset[1]);
-        BlockPos forwardBelow = forward.below();
-
-        // Check what exists at forward position
-        BlockState forwardState = this.level().getBlockState(forward);
-        BlockState forwardBelowState = this.level().getBlockState(forwardBelow);
-
-        // DON'T place if:
-        // 1. There's already a solid block at forward (existing stairs)
-        // 2. This is the block we just broke
-        if (!forwardState.isAir() && forwardState.isSolid()) {
-            // Block already exists, just move on
-            stepsSinceDirectionChange++;
-            if (stepsSinceDirectionChange >= STEPS_PER_SPIRAL) {
-                spiralDirection = (spiralDirection + 1) % 4;
-                stepsSinceDirectionChange = 0;
-            }
+        if (dx == 0 && dz == 0) {
             return false;
         }
 
-        // Don't place in recently broken position
-        if (lastBrokenBlock != null && forward.equals(lastBrokenBlock) && ticksSinceBreak < 40) {
+        // Next position toward target
+        BlockPos nextPos = current.offset(dx, 0, dz);
+        BlockPos belowNext = nextPos.below();
+
+        BlockState nextState = this.level().getBlockState(nextPos);
+        BlockState belowState = this.level().getBlockState(belowNext);
+
+        // Don't place if recently broken
+        if (lastBrokenBlock != null && belowNext.equals(lastBrokenBlock) && ticksSinceBreak < 40) {
             return false;
         }
 
-        // DON'T place if there's already a solid floor below (we'd be placing ON TOP of stairs)
-        if (forwardBelowState.isSolid() && forwardState.isAir()) {
-            // There's a floor here already, skip this position
-            stepsSinceDirectionChange++;
-            if (stepsSinceDirectionChange >= STEPS_PER_SPIRAL) {
-                spiralDirection = (spiralDirection + 1) % 4;
-                stepsSinceDirectionChange = 0;
+        // Check if we should step up (every 3 blocks)
+        boolean shouldStepUp = (blocksPlacedAtCurrentHeight >= BLOCKS_BEFORE_STEP_UP);
+
+        if (shouldStepUp) {
+            // Place a block at mob's current level to step onto
+            BlockPos stepBlock = current.offset(dx, 0, dz); // Same Y as current position
+            BlockState stepState = this.level().getBlockState(stepBlock);
+
+            if (stepState.isAir() || !stepState.getFluidState().isEmpty()) {
+                this.level().setBlock(stepBlock, Blocks.COBBLESTONE.defaultBlockState(), 3);
+                placementCooldown = PLACEMENT_DELAY;
+                stuckTicks = 0;
+                this.getNavigation().stop();
+                blocksPlacedAtCurrentHeight = 0; // Reset counter after stepping up
+                return true;
+            } else if (stepState.isSolid()) {
+                // Step already exists, just reset counter
+                blocksPlacedAtCurrentHeight = 0;
+                return false;
             }
-            return false;
-        }
-
-        // Only place if we need to fill a gap (no floor below)
-        if (!forwardBelowState.isSolid() && (forwardState.isAir() || !forwardState.getFluidState().isEmpty())) {
-            this.level().setBlock(forward, Blocks.COBBLESTONE.defaultBlockState(), 3);
-            placementCooldown = PLACEMENT_DELAY;
-            stuckTicks = 0;
-            this.getNavigation().stop();
-
-            // Update spiral direction
-            stepsSinceDirectionChange++;
-            if (stepsSinceDirectionChange >= STEPS_PER_SPIRAL) {
-                spiralDirection = (spiralDirection + 1) % 4;
-                stepsSinceDirectionChange = 0;
+        } else {
+            // Place normal floor block below next position
+            if (!belowState.isSolid()) {
+                this.level().setBlock(belowNext, Blocks.COBBLESTONE.defaultBlockState(), 3);
+                placementCooldown = PLACEMENT_DELAY;
+                stuckTicks = 0;
+                this.getNavigation().stop();
+                blocksPlacedAtCurrentHeight++;
+                return true;
+            } else if (belowState.isSolid() && nextState.isAir()) {
+                // Floor already exists, just increment counter
+                blocksPlacedAtCurrentHeight++;
+                return false;
             }
-
-            return true;
         }
 
         return false;
@@ -263,66 +255,33 @@ public class WarpedMiner extends ZombifiedPiglin {
     private boolean attemptBreakObstacle(BlockPos current, boolean climbing) {
         BlockPos targetBreak = null;
 
-        if (climbing) {
-            int[] offset = getSpiralOffset();
-            BlockPos forward = current.offset(offset[0], 0, offset[1]);
+        int dx = Integer.compare(targetPos.getX(), current.getX());
+        int dz = Integer.compare(targetPos.getZ(), current.getZ());
 
-            BlockPos[] candidates = {
-                    forward,
-                    forward.above(),
-                    forward.above().above()
-            };
+        BlockPos forward = current.offset(dx, 0, dz);
 
-            for (BlockPos p : candidates) {
-                BlockState state = this.level().getBlockState(p);
-                if (!state.isAir() && state.getDestroySpeed(this.level(), p) >= 0) {
-                    targetBreak = p;
-                    break;
-                }
-            }
-        } else {
-            int dx = Integer.compare(targetPos.getX(), current.getX());
-            int dz = Integer.compare(targetPos.getZ(), current.getZ());
+        BlockPos[] candidates = {
+                forward,
+                forward.above(),
+                forward.above().above()
+        };
 
-            BlockPos forward = current.offset(dx, 0, dz);
-
-            BlockPos[] candidates = {
-                    forward,
-                    forward.above(),
-                    current.above().above()
-            };
-
-            for (BlockPos p : candidates) {
-                BlockState state = this.level().getBlockState(p);
-                if (!state.isAir() && state.getDestroySpeed(this.level(), p) >= 0) {
-                    targetBreak = p;
-                    break;
-                }
+        for (BlockPos p : candidates) {
+            BlockState state = this.level().getBlockState(p);
+            if (!state.isAir() && state.getDestroySpeed(this.level(), p) >= 0) {
+                targetBreak = p;
+                break;
             }
         }
 
         if (targetBreak != null) {
             breakGoal.startBreaking(targetBreak);
-            // Remember this position
             lastBrokenBlock = targetBreak;
             ticksSinceBreak = 0;
             return true;
         }
 
         return false;
-    }
-
-    /**
-     * Gets the X and Z offset for the current spiral direction
-     */
-    private int[] getSpiralOffset() {
-        switch (spiralDirection) {
-            case 0: return new int[]{0, -1};  // North
-            case 1: return new int[]{1, 0};   // East
-            case 2: return new int[]{0, 1};   // South
-            case 3: return new int[]{-1, 0};  // West
-            default: return new int[]{0, -1};
-        }
     }
 
     @Override
