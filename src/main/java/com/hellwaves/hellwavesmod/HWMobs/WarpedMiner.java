@@ -4,6 +4,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.monster.ZombifiedPiglin;
@@ -50,6 +52,10 @@ public class WarpedMiner extends ZombifiedPiglin {
         this.breakGoal = new WarpedMinerBreakGoal(this);
     }
 
+    public static AttributeSupplier.Builder createAttributes() {
+        return ZombifiedPiglin.createAttributes()
+                .add(Attributes.KNOCKBACK_RESISTANCE, 0.5D);
+    }
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
