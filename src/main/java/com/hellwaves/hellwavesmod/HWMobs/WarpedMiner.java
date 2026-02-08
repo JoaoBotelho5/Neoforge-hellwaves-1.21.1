@@ -39,7 +39,11 @@ public class WarpedMiner extends ZombifiedPiglin {
 
     // Stair building tracking
     private int blocksPlacedAtCurrentHeight = 0;
+    private int lastYLevel = Integer.MIN_VALUE; // Track Y level to reset counter
     private static final int BLOCKS_BEFORE_STEP_UP = 3; // Place 3 blocks horizontally, then step up
+
+    // Track spawn position to avoid going back to it
+    private BlockPos spawnPos;
 
     public WarpedMiner(EntityType<? extends ZombifiedPiglin> type, Level level) {
         super(type, level);
@@ -54,13 +58,28 @@ public class WarpedMiner extends ZombifiedPiglin {
 
     public void setTargetBlock(BlockPos pos) {
         this.targetPos = pos;
+        System.out.println("WarpedMiner targetPos set to: " + pos);
     }
 
     @Override
     public void tick() {
         super.tick();
 
-        if (targetPos == null) return;
+        // Record spawn position on first tick
+        if (spawnPos == null) {
+            spawnPos = this.blockPosition();
+        }
+
+        if (targetPos == null) {
+            System.out.println("WarpedMiner has NULL targetPos! Not moving.");
+            return;
+        }
+
+        // SAFETY: If targetPos is same as spawn, something went wrong
+        if (targetPos.equals(spawnPos)) {
+            System.out.println("WARNING: targetPos equals spawnPos! This mob will go nowhere.");
+            return;
+        }
 
         // Decrease placement cooldown
         if (placementCooldown > 0) {
@@ -86,7 +105,13 @@ public class WarpedMiner extends ZombifiedPiglin {
         // Make the miner "shift walk" to prevent falling off blocks it places
         this.setShiftKeyDown(true);
 
-        BlockPos now = this.blockPosition();
+        BlockPos now = BlockPos.containing(this.position());
+
+        // Reset counter if Y level changed (mob stepped up)
+        if (now.getY() != lastYLevel) {
+            blocksPlacedAtCurrentHeight = 0;
+            lastYLevel = now.getY();
+        }
 
         // Fill any gaps below the mob to prevent falling
         BlockPos belowMob = now.below();
@@ -146,15 +171,13 @@ public class WarpedMiner extends ZombifiedPiglin {
             }
         }
 
-        // Try to navigate toward target
-        if (!this.getNavigation().isInProgress()) {
-            this.getNavigation().moveTo(
-                    targetPos.getX() + 0.5,
-                    targetPos.getY(),
-                    targetPos.getZ() + 0.5,
-                    1.0
-            );
-        }
+        // ALWAYS navigate toward target - don't check if in progress
+        this.getNavigation().moveTo(
+                targetPos.getX() + 0.5,
+                targetPos.getY(),
+                targetPos.getZ() + 0.5,
+                0.8
+        );
     }
 
     /**
@@ -194,7 +217,6 @@ public class WarpedMiner extends ZombifiedPiglin {
                 this.level().setBlock(stepBlock, Blocks.COBBLESTONE.defaultBlockState(), 3);
                 placementCooldown = PLACEMENT_DELAY;
                 stuckTicks = 0;
-                this.getNavigation().stop();
                 blocksPlacedAtCurrentHeight = 0; // Reset counter after stepping up
                 return true;
             } else if (stepState.isSolid()) {
@@ -208,7 +230,6 @@ public class WarpedMiner extends ZombifiedPiglin {
                 this.level().setBlock(belowNext, Blocks.COBBLESTONE.defaultBlockState(), 3);
                 placementCooldown = PLACEMENT_DELAY;
                 stuckTicks = 0;
-                this.getNavigation().stop();
                 blocksPlacedAtCurrentHeight++;
                 return true;
             } else if (belowState.isSolid() && nextState.isAir()) {
@@ -242,7 +263,6 @@ public class WarpedMiner extends ZombifiedPiglin {
             this.level().setBlock(belowNext, Blocks.COBBLESTONE.defaultBlockState(), 3);
             placementCooldown = PLACEMENT_DELAY;
             stuckTicks = 0;
-            this.getNavigation().stop();
             return true;
         }
 
