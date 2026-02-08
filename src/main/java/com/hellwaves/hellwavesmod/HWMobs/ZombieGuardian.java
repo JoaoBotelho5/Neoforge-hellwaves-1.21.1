@@ -847,9 +847,15 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     }
 
 
+
     @Override
     protected SoundEvent getAmbientSound() {
-        return SoundEvents.ZOMBIE_AMBIENT;
+        return null; // Silent ambient sounds
+    }
+
+    @Override
+    public int getAmbientSoundInterval() {
+        return Integer.MAX_VALUE; // Never play ambient sounds
     }
 
     @Override
@@ -864,7 +870,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
 
     @Override
     protected SoundEvent getStepSound() {
-        return SoundEvents.ZOMBIE_STEP;
+        return null; // Silent steps
     }
 
     @Override

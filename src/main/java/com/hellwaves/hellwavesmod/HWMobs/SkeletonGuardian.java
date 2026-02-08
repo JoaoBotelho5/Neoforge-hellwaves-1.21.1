@@ -779,7 +779,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
 
     @Override
     protected SoundEvent getAmbientSound() {
-        return SoundEvents.SKELETON_AMBIENT;
+        return null; // Silent ambient sounds
     }
 
     @Override
@@ -794,7 +794,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
 
     @Override
     protected SoundEvent getStepSound() {
-        return SoundEvents.SKELETON_STEP;
+        return null; // Silent steps
     }
 
     // ===== NBT PERSISTENCE =====
