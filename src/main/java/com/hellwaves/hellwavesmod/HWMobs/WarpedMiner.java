@@ -59,6 +59,7 @@ public class WarpedMiner extends ZombifiedPiglin {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
+        this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.MeleeAttackGoal(this, 1.0D, false));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
     }
 
@@ -104,6 +105,9 @@ public class WarpedMiner extends ZombifiedPiglin {
             if (!combatTarget.isAlive()) {
                 combatTarget = null;
                 hitCount = 0;
+            } else {
+                // Navigate to and attack the combat target
+                this.getNavigation().moveTo(combatTarget, 1.0);
             }
             return;
         }
