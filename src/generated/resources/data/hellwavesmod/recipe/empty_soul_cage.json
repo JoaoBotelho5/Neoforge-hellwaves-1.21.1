@@ -10,14 +10,14 @@
       "item": "minecraft:iron_block"
     },
     "B": {
-      "item": "minecraft:iron_chain"
+      "item": "minecraft:chain"
     },
     "C": {
       "item": "minecraft:glass_bottle"
     }
   },
   "result": {
-    "item": "hellwavesmod:empty_soul_cage",
+    "id": "hellwavesmod:empty_soul_cage",
     "count": 1
   }
 }

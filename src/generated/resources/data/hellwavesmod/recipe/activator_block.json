@@ -20,7 +20,7 @@
     }
   },
   "result": {
-    "item": "hellwavesmod:activator_block",
+    "id": "hellwavesmod:activator_block",
     "count": 1
   }
 }

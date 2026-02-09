@@ -13,14 +13,14 @@
       "item": "minecraft:magma_cream"
     },
     "C": {
-      "item": "hellwavesmod:ghast_tear"
+      "item": "minecraft:ghast_tear"
     },
     "D": {
-      "item": "hellwavesmod:echo_shard"
+      "item": "minecraft:echo_shard"
     }
   },
   "result": {
-    "item": "hellwavesmod:elite_activator_block",
+    "id": "hellwavesmod:elite_activator_block",
     "count": 1
   }
 }
