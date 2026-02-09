@@ -1,5 +1,6 @@
 package com.hellwaves.hellwavesmod.HWMobs;
 
+import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
@@ -8,10 +9,7 @@ import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.MobSpawnType;
-import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.*;
@@ -211,14 +209,16 @@ public class UndeadLord extends Zombie {
         System.out.println("=== APPLYING UNDEAD LORD GEAR ===");
 
         // Equipar o machado - VAI APARECER porque Zombie mostra itens!
-        this.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, new net.minecraft.world.item.ItemStack(Items.GOLDEN_AXE));
+        this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(HWDeferredRegister.GREAT_SWORD.get()));
         this.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new net.minecraft.world.item.ItemStack(Items.GOLDEN_HELMET));
         this.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new net.minecraft.world.item.ItemStack(Items.NETHERITE_CHESTPLATE));
         this.setItemSlot(net.minecraft.world.entity.EquipmentSlot.LEGS, new net.minecraft.world.item.ItemStack(Items.GOLDEN_LEGGINGS));
         this.setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, new net.minecraft.world.item.ItemStack(Items.GOLDEN_BOOTS));
 
         System.out.println("Main hand item: " + this.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND));
-        System.out.println("Has golden axe: " + this.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND).is(Items.GOLDEN_AXE));
+        System.out.println("Has greatsword: " +
+                this.getItemBySlot(EquipmentSlot.MAINHAND)
+                        .is(HWDeferredRegister.GREAT_SWORD.get()));
 
         // No drop chance for equipment
         this.setDropChance(net.minecraft.world.entity.EquipmentSlot.MAINHAND, 0.0F);
@@ -226,6 +226,10 @@ public class UndeadLord extends Zombie {
         this.setDropChance(net.minecraft.world.entity.EquipmentSlot.CHEST, 0.0F);
         this.setDropChance(net.minecraft.world.entity.EquipmentSlot.LEGS, 0.0F);
         this.setDropChance(net.minecraft.world.entity.EquipmentSlot.FEET, 0.0F);
+        this.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
+        this.setDropChance(EquipmentSlot.OFFHAND, 0.0F);
+
+
     }
 
     private void spawnMinions() {
