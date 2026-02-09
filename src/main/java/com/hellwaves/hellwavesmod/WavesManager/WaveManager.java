@@ -23,6 +23,7 @@ public class WaveManager {
         List<EntityType<? extends net.minecraft.world.entity.Mob>> enemies1 = new ArrayList<>();
         for (int i = 0; i < 5; i++) enemies1.add(EntityType.ZOMBIE);
         for (int i = 0; i < 5; i++) enemies1.add(EntityType.SKELETON);
+        for (int i = 0; i < 5; i++) enemies1.add(EntityType.SPIDER);
         WAVES.add(new Wave(enemies1));
 
         List<EntityType<? extends net.minecraft.world.entity.Mob>> enemies2 = new ArrayList<>();

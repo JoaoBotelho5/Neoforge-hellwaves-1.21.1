@@ -61,6 +61,9 @@ public class EliteWave {
 
                 mob.moveTo(x, y, z, 0.0F, 0.0F);
 
+                // CRITICAL: Prevent despawning when player leaves range
+                mob.setPersistenceRequired();
+
                 // Configuração especial para Warden
                 if (mob instanceof Warden warden && world instanceof ServerLevel serverLevel) {
                     DifficultyInstance difficulty = serverLevel.getCurrentDifficultyAt(mob.blockPosition());

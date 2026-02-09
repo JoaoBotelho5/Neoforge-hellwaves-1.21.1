@@ -12,6 +12,9 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -44,19 +47,31 @@ public class Wave {
 
                 mob.moveTo(x, y, z, 0, 0);
 
-                // CONFIGURAÃ‡ÃƒO ESPECIAL PARA O WARPED MINER
-                if (mob instanceof WarpedMiner warpedMiner) {
-                    warpedMiner.setTargetBlock(pos); // Define o bloco alvo como o ativador
-                }
+                // CRITICAL: Prevent despawning when player leaves range
+                mob.setPersistenceRequired();
 
                 world.addFreshEntity(mob);
 
+                // Aplica equipamento se houver configuração
                 if (waveConfig != null) {
                     EquipmentHelper.applyGear(mob, waveConfig);
                 }
 
-                // CRITICAL: WarpedMiner jÃ¡ tem seus prÃ³prios goals de mining e movimento
-                // NÃ£o adicionar WalkCenterGoal pois interfere com a mineraÃ§Ã£o
+                // === WARPED MINER CUSTOM GEAR & NAME FIX ===
+                if (mob instanceof WarpedMiner warpedMiner) {
+                    warpedMiner.setTargetBlock(pos); // Define o bloco alvo como o ativador
+
+                    // Force custom name + gear AFTER wave equipment is applied
+                    warpedMiner.setItemSlot(EquipmentSlot.MAINHAND, Items.IRON_PICKAXE.getDefaultInstance());
+                    warpedMiner.setItemSlot(EquipmentSlot.HEAD, Items.NETHERITE_HELMET.getDefaultInstance());
+                    warpedMiner.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
+                    warpedMiner.setDropChance(EquipmentSlot.HEAD, 0.0F);
+                    warpedMiner.setCustomName(Component.literal("§c⚠ Warped Miner ⚠"));
+                    warpedMiner.setCustomNameVisible(true);
+                }
+
+                // CRITICAL: WarpedMiner já tem seus próprios goals de mining e movimento
+                // Não adicionar WalkCenterGoal pois interfere com a mineração
                 if (!(mob instanceof WarpedMiner)) {
                     mob.goalSelector.addGoal(1, new WalkCenterGoal(mob, pos, 1.0));
                 }
