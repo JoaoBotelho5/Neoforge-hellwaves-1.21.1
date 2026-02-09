@@ -169,7 +169,7 @@ public class ActivatorBlockEntity extends BlockEntity {
                 );
 
                 nextWave++;
-                tickCountdown = 1200;
+                tickCountdown = 2400;
                 setChanged(); // Save changes
             } else {
                 tickCountdown--;

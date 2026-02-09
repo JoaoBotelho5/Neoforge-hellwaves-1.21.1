@@ -170,7 +170,7 @@ public class EliteActivatorBlockEntity extends BlockEntity {
                 );
 
                 nextWave++;
-                tickCountdown = 1000;
+                tickCountdown = 4800;
                 setChanged();
 
 
