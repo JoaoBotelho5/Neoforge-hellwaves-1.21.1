@@ -78,13 +78,11 @@ public class WarpedMiner extends ZombifiedPiglin {
         }
 
         if (targetPos == null) {
-            System.out.println("WarpedMiner has NULL targetPos! Not moving.");
             return;
         }
 
         // SAFETY: If targetPos is same as spawn, something went wrong
         if (targetPos.equals(spawnPos)) {
-            System.out.println("WARNING: targetPos equals spawnPos! This mob will go nowhere.");
             return;
         }
 
