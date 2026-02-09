@@ -49,12 +49,9 @@ public class EliteWaveManager {
         for (int i = 0; i < 2; i++) enemies4.add(EntityType.EVOKER);
         WAVES.add(new EliteWave(enemies4));
 
-        // Wave 5: Ultimate challenge
+        // Wave 5: Ultimate challenge - Wardens will be added dynamically
         List<EntityType<? extends Mob>> enemies5 = new ArrayList<>();
-//        for (int i = 0; i < 4; i++) enemies5.add(EntityType.WITHER_SKELETON);
-//        for (int i = 0; i < 3; i++) enemies5.add(EntityType.BLAZE);
-//        for (int i = 0; i < 2; i++) enemies5.add(EntityType.RAVAGER);
-        for (int i = 0; i < 1; i++) enemies5.add(EntityType.WARDEN); // Big finale!
+        // NOTE: Wardens NOT added here - they're added in activateWave()
         WAVES.add(new EliteWave(enemies5));
 
         try (InputStreamReader reader = new InputStreamReader(
@@ -67,7 +64,29 @@ public class EliteWaveManager {
     }
 
     public static List<Mob> activateWave(Level world, BlockPos pos, Player player, int waveNumber) {
-        EliteWave wave = WAVES.get(waveNumber - 1);
-        return wave.spawn(world, pos, waveNumber);
+        // Wave 5 needs dynamic Warden scaling
+        if (waveNumber == 5) {
+            // Count online players
+            int playerCount = world.getServer().getPlayerList().getPlayerCount();
+
+            // Scale Wardens: 1-5 based on player count (capped at 5)
+            int wardenCount = Math.min(5, Math.max(1, playerCount));
+
+            // Create dynamic wave 5 with scaled Wardens
+            List<EntityType<? extends Mob>> enemies5Dynamic = new ArrayList<>();
+
+            // Add scaled Wardens
+            for (int i = 0; i < wardenCount; i++) {
+                enemies5Dynamic.add(EntityType.WARDEN);
+            }
+
+            // Create temporary wave with scaled bosses
+            EliteWave dynamicWave = new EliteWave(enemies5Dynamic);
+            return dynamicWave.spawn(world, pos, waveNumber);
+        } else {
+            // Normal waves
+            EliteWave wave = WAVES.get(waveNumber - 1);
+            return wave.spawn(world, pos, waveNumber);
+        }
     }
 }
