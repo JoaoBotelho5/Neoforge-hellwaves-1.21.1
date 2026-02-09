@@ -59,8 +59,8 @@ public class WarpedMiner extends ZombifiedPiglin {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.MeleeAttackGoal(this, 1.0D, false));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
+        // NO MeleeAttackGoal here - combat is handled manually in tick()
     }
 
     public void setTargetBlock(BlockPos pos) {
@@ -105,11 +105,21 @@ public class WarpedMiner extends ZombifiedPiglin {
             if (!combatTarget.isAlive()) {
                 combatTarget = null;
                 hitCount = 0;
+                this.setTarget(null);
             } else {
                 // Navigate to and attack the combat target
                 this.getNavigation().moveTo(combatTarget, 1.0);
+                this.setTarget(combatTarget);
+
+                // Manual attack when in range
+                if (this.distanceToSqr(combatTarget) <= 4.0) {
+                    this.doHurtTarget(combatTarget);
+                }
             }
             return;
+        } else {
+            // Clear target when not in combat
+            this.setTarget(null);
         }
 
         // Make the miner "shift walk" to prevent falling off blocks it places
@@ -123,12 +133,18 @@ public class WarpedMiner extends ZombifiedPiglin {
             lastYLevel = now.getY();
         }
 
-        // Fill any gaps below the mob to prevent falling
-        BlockPos belowMob = now.below();
-        BlockState belowState = this.level().getBlockState(belowMob);
-        if (!belowState.isSolid() && placementCooldown == 0) {
-            this.level().setBlock(belowMob, Blocks.COBBLESTONE.defaultBlockState(), 3);
-            placementCooldown = PLACEMENT_DELAY;
+        // Determine if we're climbing, digging down, or going horizontal
+        int heightDiff = targetPos.getY() - now.getY();
+        boolean needsToDigDown = heightDiff < 0;
+
+        // Fill any gaps below the mob to prevent falling (ONLY if not digging down)
+        if (!needsToDigDown) {
+            BlockPos belowMob = now.below();
+            BlockState belowState = this.level().getBlockState(belowMob);
+            if (!belowState.isSolid() && placementCooldown == 0) {
+                this.level().setBlock(belowMob, Blocks.COBBLESTONE.defaultBlockState(), 3);
+                placementCooldown = PLACEMENT_DELAY;
+            }
         }
 
         // Check if reached destination (must be at correct X, Z, AND Y)
@@ -148,8 +164,6 @@ public class WarpedMiner extends ZombifiedPiglin {
         }
         lastPos = now;
 
-        // Determine if we're climbing or going horizontal
-        int heightDiff = targetPos.getY() - now.getY();
         boolean needsToClimb = heightDiff > 0;
 
         // If currently breaking, continue breaking
@@ -160,15 +174,20 @@ public class WarpedMiner extends ZombifiedPiglin {
 
         // If stuck, try breaking obstacles
         if (stuckTicks >= 20) {
-            if (attemptBreakObstacle(now, needsToClimb)) {
+            if (attemptBreakObstacle(now, needsToClimb, needsToDigDown)) {
                 breakGoal.tick();
                 return;
             }
         }
 
-        // Main logic: climb or bridge
+        // Main logic: climb, dig down, or bridge
         if (placementCooldown == 0) {
-            if (needsToClimb) {
+            if (needsToDigDown) {
+                // DIG DOWN
+                if (attemptDigDown(now)) {
+                    return;
+                }
+            } else if (needsToClimb) {
                 // BUILD STAIRS
                 if (attemptBuildStairs(now)) {
                     return;
@@ -188,6 +207,24 @@ public class WarpedMiner extends ZombifiedPiglin {
                 targetPos.getZ() + 0.5,
                 0.8
         );
+    }
+
+    /**
+     * Dig down toward the target
+     */
+    private boolean attemptDigDown(BlockPos current) {
+        // Break block below if it exists and is solid
+        BlockPos below = current.below();
+        BlockState belowState = this.level().getBlockState(below);
+
+        if (belowState.isSolid() && belowState.getDestroySpeed(this.level(), below) >= 0) {
+            breakGoal.startBreaking(below);
+            lastBrokenBlock = below;
+            ticksSinceBreak = 0;
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -282,25 +319,35 @@ public class WarpedMiner extends ZombifiedPiglin {
     /**
      * Attempts to break obstacles in the path
      */
-    private boolean attemptBreakObstacle(BlockPos current, boolean climbing) {
+    private boolean attemptBreakObstacle(BlockPos current, boolean climbing, boolean diggingDown) {
         BlockPos targetBreak = null;
 
-        int dx = Integer.compare(targetPos.getX(), current.getX());
-        int dz = Integer.compare(targetPos.getZ(), current.getZ());
+        if (diggingDown) {
+            // When digging down, break blocks below
+            BlockPos below = current.below();
+            BlockState belowState = this.level().getBlockState(below);
+            if (belowState.isSolid() && belowState.getDestroySpeed(this.level(), below) >= 0) {
+                targetBreak = below;
+            }
+        } else {
+            // When going horizontal or up, break blocks in front
+            int dx = Integer.compare(targetPos.getX(), current.getX());
+            int dz = Integer.compare(targetPos.getZ(), current.getZ());
 
-        BlockPos forward = current.offset(dx, 0, dz);
+            BlockPos forward = current.offset(dx, 0, dz);
 
-        BlockPos[] candidates = {
-                forward,
-                forward.above(),
-                forward.above().above()
-        };
+            BlockPos[] candidates = {
+                    forward,
+                    forward.above(),
+                    forward.above().above()
+            };
 
-        for (BlockPos p : candidates) {
-            BlockState state = this.level().getBlockState(p);
-            if (!state.isAir() && state.getDestroySpeed(this.level(), p) >= 0) {
-                targetBreak = p;
-                break;
+            for (BlockPos p : candidates) {
+                BlockState state = this.level().getBlockState(p);
+                if (!state.isAir() && state.getDestroySpeed(this.level(), p) >= 0) {
+                    targetBreak = p;
+                    break;
+                }
             }
         }
 
