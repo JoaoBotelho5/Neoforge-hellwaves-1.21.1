@@ -66,7 +66,7 @@ public class Wave {
                     warpedMiner.setItemSlot(EquipmentSlot.HEAD, Items.NETHERITE_HELMET.getDefaultInstance());
                     warpedMiner.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
                     warpedMiner.setDropChance(EquipmentSlot.HEAD, 0.0F);
-                    warpedMiner.setCustomName(Component.literal("§c⚠ Warped Miner ⚠"));
+                    warpedMiner.setCustomName(Component.literal("§c§l⚠ Warped Miner ⚠"));
                     warpedMiner.setCustomNameVisible(true);
                 }
 

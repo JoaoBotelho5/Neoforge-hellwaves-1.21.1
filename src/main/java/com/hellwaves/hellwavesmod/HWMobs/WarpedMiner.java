@@ -389,7 +389,7 @@ public class WarpedMiner extends ZombifiedPiglin {
         this.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
         this.setDropChance(EquipmentSlot.HEAD, 0.0F);
 
-        this.setCustomName(Component.literal("§c⚠ Warped Miner ⚠"));
+        this.setCustomName(Component.literal("§c§l⚠ Warped Miner ⚠"));
         this.setCustomNameVisible(true);
 
         return data;
