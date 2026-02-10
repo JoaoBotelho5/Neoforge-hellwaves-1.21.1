@@ -870,7 +870,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
 
     @Override
     protected SoundEvent getStepSound() {
-        return null; // Silent steps
+        return SoundEvents.ZOMBIE_STEP;
     }
 
     @Override

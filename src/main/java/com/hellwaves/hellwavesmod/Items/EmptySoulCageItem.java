@@ -2,6 +2,7 @@ package com.hellwaves.hellwavesmod.Items;
 
 import com.hellwaves.hellwavesmod.HWMobs.IGuardian;
 import com.hellwaves.hellwavesmod.regivents.HWDeferredRegister;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -76,8 +77,8 @@ public class EmptySoulCageItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.literal("§7Right-click a Guardian"));
-        tooltip.add(Component.literal("§7to capture it"));
+        tooltip.add(Component.literal("Right-click a Guardian to capture it")
+                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         super.appendHoverText(stack, context, tooltip, flag);
     }
 }
