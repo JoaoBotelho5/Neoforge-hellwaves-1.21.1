@@ -357,8 +357,10 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
                         !(entity instanceof ZombieGuardian) &&
                         !(entity instanceof SkeletonGuardian) &&
                         entity.isAlive() &&
-                        this.distanceToSqr(entity) <= (range * range)
+                        this.distanceToSqr(entity) <= (range * range) &&
+                        this.getSensing().hasLineOfSight(entity) // se visivel
         );
+
 
         if (!nearbyMobs.isEmpty()) {
             LivingEntity closest = nearbyMobs.stream()
@@ -777,6 +779,11 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
 
             double distSq = ZombieGuardian.this.distanceToSqr(currentTarget);
             if (distSq > TARGET_RANGE * TARGET_RANGE) {
+                return false;
+            }
+
+            if (!ZombieGuardian.this.getSensing().hasLineOfSight(currentTarget)) {
+                ZombieGuardian.this.setTarget(null);
                 return false;
             }
 
