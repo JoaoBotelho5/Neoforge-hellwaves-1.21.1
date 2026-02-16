@@ -288,7 +288,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         this.goalSelector.addGoal(1, new GuardianFollowGoal(1.0D));
         this.goalSelector.addGoal(1, new GuardianWanderGoal(0.8D));
         this.goalSelector.addGoal(2, new SafeRangedBowAttackGoal<>(this, 1.0D, 15.0F));
-        this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.2D, false));
+        this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.1D, false));
         this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));
 
@@ -498,7 +498,12 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
                 return false;
             }
 
-            return super.canContinueToUse();
+            if (!SkeletonGuardian.this.getSensing().hasLineOfSight(currentTarget)) {
+                SkeletonGuardian.this.setTarget(null);
+                return false;
+            }
+
+            return true;
         }
         @Override
         public void tick() {
@@ -553,6 +558,13 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
+        Entity attacker = source.getEntity();
+
+        // Prevent friendly fire
+        if (attacker instanceof SkeletonGuardian || attacker instanceof ZombieGuardian) {
+            return false;
+        }
+
         boolean result = super.hurt(source, amount);
 
         // Limpa qualquer target morto imediatamente
@@ -582,6 +594,9 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         // Clear dead target
         LivingEntity target = this.getTarget();
         if (target != null && !target.isAlive()) {
+            this.setTarget(null);
+        } else if (target != null && !this.getSensing().hasLineOfSight(target)) {
+            // If target is out of sight, drop it
             this.setTarget(null);
         }
 
@@ -628,7 +643,8 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
                         isHostileMob(mob) &&
                         !(entity instanceof SkeletonGuardian) &&
                         entity.isAlive() &&
-                        this.distanceToSqr(entity) <= (range * range)
+                        this.distanceToSqr(entity) <= (range * range) &&
+                        this.getSensing().hasLineOfSight(entity) // <-- ADD THIS
         );
 
         if (!nearbyMobs.isEmpty()) {
@@ -942,13 +958,14 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
         @Override
         public void tick() {
             LivingEntity target = mob.getTarget();
-            if (target == null || !target.isAlive()) {
+            if (target == null || !target.isAlive() || !mob.getSensing().hasLineOfSight(target)) {
                 // Stop using bow if target is gone or dead
                 if (mob.isUsingItem()) {
                     pullingTicks = 0;
                     mob.stopUsingItem();
                     mob.setAggressive(false);
                 }
+                mob.getNavigation().stop(); // Stop moving toward target
                 return;
             }
 

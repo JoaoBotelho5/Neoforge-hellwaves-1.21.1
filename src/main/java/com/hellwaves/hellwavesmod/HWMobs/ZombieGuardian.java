@@ -824,7 +824,9 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        if (source.getEntity() instanceof ZombieGuardian) {
+        Entity attacker = source.getEntity();
+
+        if (attacker instanceof ZombieGuardian || attacker instanceof SkeletonGuardian) {
             return false;
         }
 
