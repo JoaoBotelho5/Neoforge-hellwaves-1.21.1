@@ -1,35 +1,30 @@
 package com.hellwaves.hellwavesmod.client;
 
 import com.hellwaves.hellwavesmod.HWMobs.ZombieGuardian;
-import net.minecraft.client.model.ZombieModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
 import net.minecraft.client.renderer.entity.layers.ItemInHandLayer;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.HumanoidArm;
-import net.minecraft.world.entity.monster.RangedAttackMob;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 
-public class ZombieGuardianRenderer extends HumanoidMobRenderer<ZombieGuardian, ZombieModel<ZombieGuardian>> {
+public class ZombieGuardianRenderer extends HumanoidMobRenderer<ZombieGuardian, ZombieGuardianModel<ZombieGuardian>> {
     private static final ResourceLocation ZOMBIE_GUARDIAN_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/zombie/zombie.png");
 
     public ZombieGuardianRenderer(EntityRendererProvider.Context context) {
-        super(context, new ZombieModel<>(context.bakeLayer(ModelLayers.ZOMBIE)), 0.5F);
+        // Use our custom ZombieGuardianModel instead of the vanilla ZombieModel
+        super(context, new ZombieGuardianModel<>(context.bakeLayer(ModelLayers.ZOMBIE)), 0.5F);
 
-        // Adicionar layer para mostrar items na mão (incluindo arco)
+        // Add layer to show items in hand (including bow)
         this.addLayer(new ItemInHandLayer<>(this, context.getItemInHandRenderer()));
         this.addLayer(new HumanoidArmorLayer<>(
                 this,
-                new ZombieModel<>(context.bakeLayer(ModelLayers.ZOMBIE_INNER_ARMOR)),
-                new ZombieModel<>(context.bakeLayer(ModelLayers.ZOMBIE_OUTER_ARMOR)),
+                new ZombieGuardianModel<>(context.bakeLayer(ModelLayers.ZOMBIE_INNER_ARMOR)),
+                new ZombieGuardianModel<>(context.bakeLayer(ModelLayers.ZOMBIE_OUTER_ARMOR)),
                 context.getModelManager()
         ));
     }
-
 
     @Override
     public ResourceLocation getTextureLocation(ZombieGuardian entity) {
