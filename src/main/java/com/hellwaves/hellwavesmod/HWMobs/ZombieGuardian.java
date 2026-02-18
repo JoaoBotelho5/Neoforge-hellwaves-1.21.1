@@ -986,5 +986,9 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     public boolean removeWhenFarAway(double distanceToClosestPlayer) {
         return false; // Prevent natural despawning
     }
+    @Override
+    public boolean isPreventingPlayerRest(Player player) {
+        return false;
+    }
 
 }

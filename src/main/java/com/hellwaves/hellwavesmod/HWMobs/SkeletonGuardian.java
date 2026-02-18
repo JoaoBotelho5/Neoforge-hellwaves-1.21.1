@@ -1062,5 +1062,9 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     public boolean removeWhenFarAway(double distanceToClosestPlayer) {
         return false;
     }
+    @Override
+    public boolean isPreventingPlayerRest(Player player) {
+        return false;
+    }
 
 }
