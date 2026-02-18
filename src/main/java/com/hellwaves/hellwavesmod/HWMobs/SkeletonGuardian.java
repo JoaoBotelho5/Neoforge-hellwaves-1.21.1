@@ -879,6 +879,7 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
     @Override
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData) {
         spawnGroupData = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData);
+        this.setPersistenceRequired();
 
         // Only clear equipment when first spawned, NOT when restoring from cage
         if (!restoringFromCage) {
@@ -1055,6 +1056,11 @@ public class SkeletonGuardian extends AbstractSkeleton implements RangedAttackMo
             mob.stopUsingItem();
             mob.setAggressive(false);
         }
+    }
+
+    @Override
+    public boolean removeWhenFarAway(double distanceToClosestPlayer) {
+        return false;
     }
 
 }

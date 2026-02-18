@@ -944,6 +944,7 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData) {
         spawnGroupData = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData);
         this.setBaby(false);
+        this.setPersistenceRequired();
 
         // Only clear equipment when first spawned, NOT when restoring from cage
         if (!restoringFromCage) {
@@ -980,4 +981,10 @@ public class ZombieGuardian extends Zombie implements RangedAttackMob, IGuardian
             }
         }
     }
+
+    @Override
+    public boolean removeWhenFarAway(double distanceToClosestPlayer) {
+        return false; // Prevent natural despawning
+    }
+
 }
