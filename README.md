@@ -4,6 +4,8 @@
 ![NeoForge](https://img.shields.io/badge/NeoForge-1.21.1-blue)
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento%20ativo-brightgreen)
 
+CurseForge Link: https://www.curseforge.com/minecraft/mc-mods/hellwaves
+
 Mod de wave-survival para Minecraft, desenvolvido em Java sobre o framework NeoForge (1.21.1). Para além do conteúdo de jogo, o projeto serve como demonstração prática de conceitos de engenharia de software aplicados num sistema real: concorrência, arquitetura orientada a eventos, design de sistemas data-driven, sincronização cliente-servidor e networking custom.
 
 ## O que este projeto demonstra
