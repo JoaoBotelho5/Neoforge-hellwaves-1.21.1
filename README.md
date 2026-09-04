@@ -2,31 +2,36 @@
 
 ![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)
 ![NeoForge](https://img.shields.io/badge/NeoForge-1.21.1-blue)
-![License](https://img.shields.io/badge/status-active%20development-brightgreen)
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento%20ativo-brightgreen)
 
-Hellwaves é um mod de wave-survival para Minecraft (NeoForge 1.21.1), construído em torno de **Activator Blocks** — estruturas tipo portal que invocam vagas escalonadas de inimigos — e **Guardians**, aliados mortos-vivos domesticáveis com equipamento, upgrades e um sistema de armazenamento persistente.
+Mod de wave-survival para Minecraft, desenvolvido em Java sobre o framework NeoForge (1.21.1). Para além do conteúdo de jogo, o projeto serve como demonstração prática de conceitos de engenharia de software aplicados num sistema real: concorrência, arquitetura orientada a eventos, design de sistemas data-driven, sincronização cliente-servidor e networking custom.
 
-Este documento foca-se na **arquitetura do código**: como os sistemas estão organizados, que padrões de engenharia foram aplicados e porquê.
+## O que este projeto demonstra
 
-## Índice
+| Área | Onde está aplicado |
+|---|---|
+| **Concorrência e estruturas thread-safe** | `GlobalMiningReservation` usa `ConcurrentHashMap.newKeySet()` para coordenar acesso exclusivo a um recurso partilhado entre múltiplas entidades, evitando race conditions sem locks explícitos. |
+| **Máquinas de estado escritas à mão** | `WarpedMiner` implementa uma state machine em Java puro (navegação → deteção de bloqueio → mineração preditiva → transição para combate), sem depender de framework externo. |
+| **Arquitetura orientada a eventos** | Sistema de listeners (`@SubscribeEvent`) que injeta comportamento — targeting, permissões, colisões — sem alterar as classes que despoletam os eventos. Mesmo princípio de desacoplamento usado em arquiteturas pub/sub. |
+| **Serialização de objetos com estado** | `SoulCageItem` implementa uma pipeline de serialização/desserialização (estado + metadados custom), com tratamento explícito de edge cases (modo criativo vs. sobrevivência). |
+| **Networking type-safe** | Packets custom com `StreamCodec` para serialização binária estruturada cliente-servidor, com validação de contexto (distância, autoridade do servidor) antes de aplicar mudanças de estado. |
+| **Sistemas data-driven** | Configuração de gameplay via JSON carregado em runtime, com algoritmo de seleção por peso cumulativo — separação clara entre lógica e dados, sem necessidade de recompilar para rebalancear. |
+| **Interfaces e polimorfismo** | `IGuardian` como contrato partilhado entre implementações distintas, permitindo que sistemas transversais (GUI, packets, persistência) operem de forma genérica sobre qualquer tipo concreto. |
+| **Registo centralizado (padrão registry/factory)** | `DeferredRegister` gere a criação e o ciclo de vida de dezenas de objetos de jogo, evitando acoplamento direto e problemas de ordem de inicialização. |
 
-- [Features](#features)
-- [Arquitetura do projeto](#arquitetura-do-projeto)
-- [Destaques técnicos](#destaques-técnicos)
-- [Fluxo de uma wave](#fluxo-de-uma-wave-passo-a-passo)
-- [Instalação](#instalação)
-
-## Features
+## Sobre o Hellwaves
 
 ### Wave Activators
+Blocos que trigam sequências de waves de inimigos automaticamente:
 - **Standard Activator** — 3 waves, de zombies/skeletons até um boss Undead Lord.
 - **Elite Activator** — 5 waves, culminando num encontro com um Warden, raio de spawn maior e melhores recompensas.
-- Equipamento por wave (armas, armaduras, efeitos) é **data-driven via JSON**, com seleção por peso — balanceamento sem recompilar.
-- O bloco cresce visualmente conforme as waves avançam; se um inimigo alcançar o ativador, este detona.
+
+O equipamento de cada wave é configurável via JSON (armas, armaduras, efeitos), sem necessidade de recompilar. O bloco cresce visualmente conforme as waves avançam; se um inimigo alcançar o ativador, este detona.
 
 ### Guardians
-- GUI de inventário dedicada (armadura, mãos, storage extra), sincronizada em tempo real com vida, armadura, toughness e dano de ataque.
-- **Soul Cages** — captura um guardian preservando nível, vida, equipamento e nome customizado; liberta-o noutro sítio.
+Zombie e Skeleton Guardians são aliados upgradeáveis com:
+- GUI de inventário dedicada, sincronizada em tempo real com vida, armadura, toughness e dano de ataque.
+- **Soul Cages** — captura um guardian preservando nível, vida, equipamento e nome; liberta-o noutro sítio.
 - Proteção de fogo amigo com Iron Golems, Snow Golems e Wolves, exceto em legítima defesa.
 - Upgrades disparados via packets de rede customizados.
 
@@ -37,9 +42,7 @@ Mob hostil que faz pathfinding até um bloco-alvo e mina preditivamente os obst�
 - **Greatsword** — arma pesada de duas mãos com tier de ferramenta netherite custom.
 - **Guardian Summoners** para invocar Zombie/Skeleton Guardians diretamente.
 
-## Arquitetura do projeto
-
-O código está organizado por **responsabilidade de domínio**, não por tipo técnico — cada package resolve um problema específico do mod:
+## Estrutura do projeto
 
 ```
 com.hellwaves.hellwavesmod
@@ -47,88 +50,52 @@ com.hellwaves.hellwavesmod
 ├── HWClientSetup.java           → registo client-side (renderers, screens)
 │
 ├── Blocks/                      → Activator Blocks (bloco + block entity + registo)
-│   ├── ActivatorBlock.java / ActivatorBlockEntity.java
-│   ├── EliteActivatorBlock.java / EliteActivatorBlockEntity.java
-│   └── ModBlockEntities.java
-│
 ├── HWMobs/                      → entidades custom e a sua lógica de IA
-│   ├── WarpedMiner.java / WarpedMinerBreakGoal.java
-│   ├── GlobalMiningReservation.java
-│   └── IGuardian.java           → contrato partilhado por todos os guardians
-│
-├── Waves/                       → lógica de spawn de uma wave
-│   ├── Wave.java                → waves standard
-│   └── EliteWave.java           → waves elite (spawn radial, casos especiais p/ Warden/Phantom)
-│
-├── WavesManager/                → definição estática das waves + config JSON
-│   ├── WaveManager.java
-│   └── EliteWaveManager.java
-│
+├── Waves/                       → lógica de spawn de uma wave (standard e elite)
+├── WavesManager/                → definição estática das waves + carregamento do JSON
 ├── equipment/                   → sistema de loadouts data-driven
-│   ├── EquipmentConfig.java / EquipmentHelper.java / EliteEquipmentHelper.java
-│
 ├── Items/                       → itens custom (armas, summoners, soul cages)
-│
-├── inventory/                   → GUI dos Guardians
-│   ├── GuardianInventory.java       → implementação de Container
-│   ├── GuardianInventoryMenu.java   → AbstractContainerMenu + sync de stats
-│   └── ModMenuTypes.java
-│
+├── inventory/                   → GUI dos Guardians (Container, Menu, sync de stats)
 ├── packets/                     → networking client → server
-│   ├── Modpackets.java
-│   └── upgradeguardianpacket.java
-│
 ├── regivents/                   → registo central + event listeners
-│   ├── HWDeferredRegister.java  → single source of truth para blocks/items/entities
-│   ├── HWEvents.java / HWCreativeEvents.java
-│   └── ZombieGuardianEvents.java / SkeletonGuardianEvents.java
-│
-├── targeting/                   → GuardianTargeting.java (injeção dinâmica de IA)
-│
+├── targeting/                   → injeção dinâmica de IA (GuardianTargeting)
 └── client/                      → renderers das entidades custom
 ```
 
-## Destaques técnicos
+## Arquitetura em detalhe
 
-### 1. Registo centralizado com `DeferredRegister`
-Todo o registo de `Block`, `Item`, `EntityType` e `BlockEntityType` passa por `HWDeferredRegister`/`ModBlockEntities`, seguindo o padrão de registo adiado do NeoForge. Isto evita problemas de ordem de carregamento de classes e mantém uma única fonte de verdade para todo o conteúdo do mod.
+**Registo centralizado com `DeferredRegister`**
+Todo o registo de `Block`, `Item`, `EntityType` e `BlockEntityType` passa por `HWDeferredRegister`/`ModBlockEntities`, seguindo o padrão de registo adiado do NeoForge — única fonte de verdade para todo o conteúdo do mod, sem problemas de ordem de carregamento de classes.
 
-### 2. Arquitetura orientada a eventos
-Em vez de alterar classes core do jogo, o comportamento é injetado via `@SubscribeEvent` no barramento de eventos:
-- `ZombieGuardianEvents` / `SkeletonGuardianEvents` cancelam `LivingChangeTargetEvent` para implementar proteção de fogo amigo com exceção de legítima defesa.
-- `GuardianTargeting` escuta `EntityJoinLevelEvent` e injeta dinamicamente um `Goal` customizado em **qualquer** mob hostil que entra no mundo (vanilla ou de outro mod), fazendo-o perseguir Guardians — sem precisar de tocar na classe de cada mob individualmente.
+**Sistema de eventos**
+`GuardianTargeting` escuta `EntityJoinLevelEvent` e injeta dinamicamente um `Goal` customizado em qualquer mob hostil que entra no mundo (vanilla ou de outro mod), fazendo-o perseguir Guardians sem tocar na classe de cada mob individualmente. `ZombieGuardianEvents`/`SkeletonGuardianEvents` cancelam `LivingChangeTargetEvent` para implementar fogo amigo com exceção de legítima defesa.
 
-### 3. Sistema data-driven de equipamento
-`EquipmentConfig`/`EquipmentHelper`/`EliteEquipmentHelper` carregam tabelas JSON no arranque e escolhem o loadout de cada wave através de um algoritmo de seleção por peso cumulativo (`getRandomItem`). Balancear o jogo (armas, armaduras, drop rates) é uma edição de JSON, zero recompilação.
+**Equipamento data-driven**
+`EquipmentConfig`/`EquipmentHelper`/`EliteEquipmentHelper` carregam tabelas JSON no arranque e escolhem o loadout de cada wave através de seleção por peso cumulativo (`getRandomItem`).
 
-### 4. Máquina de estados para IA de mob
-`WarpedMiner` implementa, à mão, uma pequena máquina de estados dentro de `tick()`:
-
+**IA do Warped Miner**
 ```
 navegar até o alvo → detetar "preso" (30 ticks parado) → minerar preditivamente
     → aplicar regra dos 3 hits → mudar para combate direto
 ```
-`WarpedMinerBreakGoal` isola a sub-lógica de mineração (lista negra de blocos protegidos, tempo de quebra proporcional à dureza do bloco). `GlobalMiningReservation` é um registo de reservas thread-safe (`ConcurrentHashMap`) que impede dois miners de minarem o mesmo bloco em simultâneo.
+`WarpedMinerBreakGoal` isola a sub-lógica de mineração (lista negra de blocos protegidos, tempo de quebra proporcional à dureza do bloco). `GlobalMiningReservation` impede dois miners de minarem o mesmo bloco em simultâneo.
 
-### 5. Sincronização cliente-servidor
-`GuardianInventoryMenu` estende `AbstractContainerMenu` e expõe vida, armadura, toughness e nível em tempo real através de uma implementação custom de `ContainerData`, desacoplando a UI (`Screen`) do estado autoritativo do servidor sem expor internals da entidade.
+**Sincronização cliente-servidor**
+`GuardianInventoryMenu` estende `AbstractContainerMenu` e expõe vida, armadura, toughness e nível em tempo real através de uma implementação custom de `ContainerData`, desacoplando a UI do estado autoritativo do servidor.
 
-### 6. Networking custom
-`upgradeguardianpacket` implementa `CustomPacketPayload` com `StreamCodec` para serialização type-safe, despachado via `Modpackets`/`PacketDistributor` — permite disparar upgrades de guardian a partir de interações no cliente sem gambiarras de NBT sync.
+**Networking**
+`upgradeguardianpacket` implementa `CustomPacketPayload` com `StreamCodec` para serialização type-safe, despachado via `Modpackets`/`PacketDistributor`.
 
-### 7. Serialização/persistência de entidades vivas
-`SoulCageItem`/`EmptySoulCageItem` serializam o NBT completo de uma entidade viva (`LivingEntity#saveWithoutId`) mais metadados custom (nível, nome, tipo) num `DataComponent` do `ItemStack`, e reconstroem uma entidade equivalente na libertação — na prática, um pipeline de serialização/desserialização de objetos de jogo com estado.
-
-### 8. Polimorfismo orientado por interface
-`IGuardian` abstrai o comportamento partilhado (nível, inventário, flag de restauro de cage) entre `ZombieGuardian` e `SkeletonGuardian`, permitindo que sistemas transversais (`GuardianInventoryMenu`, `SoulCageItem`, `upgradeguardianpacket`) operem sobre qualquer guardian sem conhecer o tipo concreto.
+**Persistência de entidades**
+`SoulCageItem`/`EmptySoulCageItem` serializam o NBT completo de uma entidade viva (`LivingEntity#saveWithoutId`) mais metadados custom (nível, nome, tipo) num `DataComponent` do `ItemStack`, e reconstroem uma entidade equivalente na libertação.
 
 ## Fluxo de uma wave (passo a passo)
 
 1. `ActivatorBlock.tick()` corre no servidor a cada tick agendado e delega a lógica de estado ao `ActivatorBlockEntity`.
 2. Quando não há mobs ativos e o countdown chega a zero, `WaveManager`/`EliteWaveManager` resolve a `Wave` correspondente ao número atual.
-3. `Wave.spawn()` posiciona os mobs em formação radial à volta do ativador, aplica o `EquipmentHelper` (gear via JSON) e injeta o `WalkCenterGoal` para os forçar a convergir.
+3. `Wave.spawn()` posiciona os mobs em formação radial à volta do ativador, aplica o equipamento (JSON) e injeta o `WalkCenterGoal` para os forçar a convergir.
 4. `ActivatorBlockEntity` mantém a lista de mobs ativos; se um deles entra no raio de ativação, o bloco explode e reinicia o progresso.
-5. Ao completar todas as waves, recompensas são geradas (`ItemEntity`) e o bloco remove-se a si próprio.
+5. Ao completar todas as waves, recompensas são geradas e o bloco remove-se a si próprio.
 
 ## Instalação
 
